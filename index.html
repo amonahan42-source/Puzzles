@@ -1,0 +1,2452 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="seaglass">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Puzzles</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232ea39b'/%3E%3Cpath d='M36 14a5 5 0 0 1 5 5v3h7a4 4 0 0 1 4 4v7h-3a5 5 0 0 0 0 10h3v7a4 4 0 0 1-4 4h-7v-3a5 5 0 0 0-10 0v3h-7a4 4 0 0 1-4-4v-7h3a5 5 0 0 0 0-10h-3v-7a4 4 0 0 1 4-4h7v-3a5 5 0 0 1 5-5z' fill='%23ffffff'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #f6f2e9;
+    --surface: #ffffff;
+    --surface-2: #ede7da;
+    --surface-3: #e2dac9;
+    --text: #1f2d2b;
+    --text-muted: #5a6d6a;
+    --border: #d5ccb9;
+    --accent: #2ea39b;
+    --accent-hover: #248780;
+    --accent-soft: #dff3f0;
+    --gold: #d99b26;
+    --gold-bg: #fdf3dc;
+    --gold-border: #e5b54f;
+    --danger: #d9534f;
+    --success: #3a9d68;
+    --warn: #e09f3e;
+    --card-back: linear-gradient(135deg, #4db6ac 0%, #2b8a82 100%);
+    --shadow: 0 4px 14px rgba(31, 45, 43, 0.08);
+    --tile-absent: #788885;
+    --tile-present: #e0a83b;
+    --tile-correct: #3a9d68;
+  }
+  [data-theme="light"] {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #e9edf2;
+    --surface-3: #dce2ea;
+    --text: #182026;
+    --text-muted: #5c6b7a;
+    --border: #cfd7e0;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-soft: #dbeafe;
+    --gold: #d97706;
+    --gold-bg: #fef3c7;
+    --gold-border: #f59e0b;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --warn: #d97706;
+    --card-back: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    --shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+    --tile-absent: #64748b;
+    --tile-present: #eab308;
+    --tile-correct: #22c55e;
+  }
+  [data-theme="oled"] {
+    --bg: #000000;
+    --surface: #111315;
+    --surface-2: #1b1f23;
+    --surface-3: #262c32;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #2c333a;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --accent-soft: #0c2d42;
+    --gold: #fbbf24;
+    --gold-bg: #29200b;
+    --gold-border: #b45309;
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --card-back: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    --tile-absent: #334155;
+    --tile-present: #ca8a04;
+    --tile-correct: #16a34a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #confetti-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 200;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  .top-bar {
+    max-width: 1020px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 1.08rem;
+  }
+  .header-right { display: flex; align-items: center; gap: 6px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .slam-dots { display: inline-flex; gap: 4px; align-items: center; }
+  .slam-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .slam-dot.done { background: var(--success); transform: scale(1.15); }
+  .icon-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 6px 9px;
+    font-size: 0.92rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .icon-btn:hover { background: var(--surface-3); }
+
+  nav.tabs {
+    max-width: 1020px;
+    margin: 9px auto 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+  }
+  .tab-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 4px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  main {
+    max-width: 1020px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 12px;
+    flex: 1;
+  }
+  .game-panel { display: none; }
+  .game-panel.active { display: block; }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 9px 11px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn:hover:not(:disabled) { background: var(--surface-3); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  select.select-input, input.text-input {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 9px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  input.text-input { width: 100%; font-weight: 500; }
+
+  #toast {
+    position: fixed;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    background: var(--text);
+    color: var(--surface);
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.86rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.22s ease;
+    z-index: 150;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+    text-align: center;
+    max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes rowShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+  .shake { animation: rowShake 0.35s ease; }
+
+  @keyframes tilePopWave {
+    0% { transform: scale(1) translateY(0); }
+    45% { transform: scale(1.12) translateY(-8px); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  .win-wave { animation: tilePopWave 0.48s ease forwards; }
+
+  @keyframes goldPulse {
+    0% { box-shadow: 0 0 0 0 rgba(217,155,38,0.7); transform: scale(1); }
+    50% { box-shadow: 0 0 0 10px rgba(217,155,38,0); transform: scale(1.03); }
+    100% { box-shadow: 0 0 0 0 rgba(217,155,38,0); transform: scale(1); }
+  }
+  .cat-pulse { animation: goldPulse 0.55s ease; }
+
+  /* CROSSWORD */
+  .cw-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 470px) 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 780px) { .cw-layout { grid-template-columns: 1fr; } }
+  .cw-grid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: var(--shadow);
+  }
+  .cw-pause-overlay {
+    position: absolute; inset: 0;
+    background: rgba(15, 23, 22, 0.9);
+    color: #fff; border-radius: 12px;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; z-index: 20; text-align: center; padding: 20px;
+  }
+  .cw-pause-overlay.show { display: flex; }
+  .cw-grid {
+    display: grid;
+    background: #111;
+    border: 2px solid #111;
+    width: 100%;
+    aspect-ratio: 1;
+    user-select: none;
+  }
+  .cw-cell {
+    background: #fff; color: #111;
+    border: 0.5px solid #94a3b8;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-weight: 800;
+  }
+  .cw-cell.block { background: #182026; cursor: default; }
+  .cw-cell.word-hi { background: #dff3f0; }
+  .cw-cell.active-cell { background: #fde047 !important; }
+  .cw-cell.pencil .cw-letter { color: #64748b; font-style: italic; }
+  .cw-cell.wrong::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to top right, transparent 46%, #ef4444 48%, #ef4444 52%, transparent 54%);
+    pointer-events: none;
+  }
+  .cw-cell.checked-ok .cw-letter { color: #16a34a; }
+  .cw-num {
+    position: absolute; top: 1px; left: 2px;
+    font-size: 0.56rem; font-weight: 700; color: #334155; line-height: 1;
+  }
+  .cw-grid.size-15 .cw-num { font-size: 0.44rem; top: 0.5px; left: 1px; }
+  .cw-letter { font-size: 1.25rem; line-height: 1; }
+  .cw-grid.size-7 .cw-letter { font-size: 1.05rem; }
+  .cw-grid.size-15 .cw-letter { font-size: 0.78rem; }
+  .active-clue-banner {
+    margin-top: 8px;
+    background: var(--accent-soft);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .cw-clues {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 520px) { .cw-clues { grid-template-columns: 1fr; max-height: 240px; } }
+  .clue-col h4 {
+    margin: 0 0 6px; font-size: 0.82rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 4px;
+  }
+  .clue-item { padding: 5px 6px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; line-height: 1.3; }
+  .clue-item:hover { background: var(--surface-2); }
+  .clue-item.active { background: var(--accent-soft); font-weight: 700; }
+
+  /* WORDLE & KEYBOARDS */
+  .wordle-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .wordle-board { display: grid; grid-template-rows: repeat(6, 1fr); gap: 6px; width: 100%; max-width: 315px; }
+  .w-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .w-tile {
+    aspect-ratio: 1; border: 2px solid var(--border); background: var(--surface);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.55rem; font-weight: 800; text-transform: uppercase; user-select: none;
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .w-tile.filled { border-color: var(--text-muted); }
+  .w-tile.correct { background: var(--tile-correct); border-color: var(--tile-correct); color: #fff; }
+  .w-tile.present { background: var(--tile-present); border-color: var(--tile-present); color: #fff; }
+  .w-tile.absent { background: var(--tile-absent); border-color: var(--tile-absent); color: #fff; }
+
+  .kb { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .kb-row { display: flex; justify-content: center; gap: 4px; }
+  .kb-key {
+    flex: 1; max-width: 48px; height: 54px;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    font-weight: 800; font-size: 1.02rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    user-select: none; touch-action: manipulation;
+  }
+  @media (max-width: 540px) {
+    .kb-row { gap: 3px; }
+    .kb-key { height: 58px; font-size: 1.12rem; border-radius: 7px; }
+  }
+  .kb-key.wide { max-width: 72px; flex: 1.55; font-size: 0.8rem; }
+  .kb-key.correct { background: var(--tile-correct); color: #fff; border-color: var(--tile-correct); }
+  .kb-key.present { background: var(--tile-present); color: #fff; border-color: var(--tile-present); }
+  .kb-key.absent { background: var(--tile-absent); color: #fff; border-color: var(--tile-absent); }
+
+  /* WORD SEARCH */
+  .ws-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 470px) 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 760px) { .ws-layout { grid-template-columns: 1fr; } }
+  .ws-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    aspect-ratio: 1;
+    user-select: none;
+    touch-action: none;
+    box-shadow: var(--shadow);
+  }
+  .ws-cell {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.95rem;
+    border-radius: 6px; cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+  }
+  @media (max-width: 440px) { .ws-cell { font-size: 0.82rem; } }
+  .ws-cell.found { background: var(--accent-soft); color: var(--accent-hover); }
+  .ws-cell.selecting { background: var(--accent) !important; color: #fff !important; }
+  .ws-bank {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: var(--shadow);
+  }
+  .ws-words {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+  }
+  .ws-tag {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .ws-tag.done {
+    text-decoration: line-through;
+    opacity: 0.55;
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  /* SOLITAIRE ASSOCIATIONS */
+  .sol-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: stretch;
+  }
+  .stock-area {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 220px;
+  }
+  @media (max-width: 640px) { .stock-area { flex: 1 1 100%; } }
+  .sol-slot {
+    flex: 1;
+    min-width: 96px;
+    min-height: 92px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px; cursor: pointer; text-align: center;
+  }
+  .sol-slot.stock-deck { background: var(--card-back); color: #fff; border: none; font-weight: 800; }
+  .sol-slot.stock-deck.empty { background: var(--surface-2); color: var(--text-muted); border: 2px dashed var(--border); }
+  .foundations {
+    flex: 1 1 420px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 8px;
+  }
+  .foundation-slot {
+    min-height: 92px;
+    border: 2px dashed var(--gold-border);
+    border-radius: 12px;
+    background: var(--surface);
+    padding: 8px;
+    cursor: pointer;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .foundation-slot.active-cat { border-style: solid; background: var(--gold-bg); }
+  .foundation-slot.drop-hover { box-shadow: 0 0 0 3px var(--accent); }
+  .f-title {
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--gold);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 4px;
+    line-height: 1.2;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+  .f-words { font-size: 0.72rem; color: var(--text); line-height: 1.3; margin-top: 4px; }
+  .tableau {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    align-items: start;
+  }
+  @media (max-width: 520px) { .tableau { gap: 5px; } }
+  .tab-col {
+    min-height: 220px;
+    background: rgba(128,128,128,0.06);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 6px 4px;
+    display: flex; flex-direction: column;
+  }
+  .tab-col.drop-hover { border-color: var(--accent); background: var(--accent-soft); }
+  .sol-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 9px 5px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: center;
+    cursor: grab;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+    user-select: none;
+    touch-action: none;
+    word-break: normal;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+  }
+  @media (max-width: 420px) { .sol-card { font-size: 0.68rem; padding: 8px 3px; } }
+  .tab-col .sol-card + .sol-card { margin-top: -11px; }
+  .tab-col .sol-card.face-down + .sol-card { margin-top: -21px; }
+  .sol-card.face-down {
+    background: var(--card-back); color: transparent;
+    border-color: rgba(255,255,255,0.2); height: 30px; padding: 0; cursor: default;
+  }
+  .sol-card.category-card { background: var(--gold-bg); border-color: var(--gold-border); color: var(--gold); font-weight: 800; }
+  .sol-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 10px rgba(0,0,0,0.15);
+    transform: translateY(-3px); z-index: 5;
+  }
+  .sol-card.hint-glow { box-shadow: 0 0 0 3px var(--warn); }
+  .drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 300;
+    opacity: 0.92;
+    transform: rotate(2deg) scale(1.04);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    min-width: 90px;
+  }
+
+  /* CONNECTIONS */
+  .conn-wrap { max-width: 560px; margin: 0 auto; }
+  .conn-solved { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .conn-banner { border-radius: 12px; padding: 12px; text-align: center; color: #111827; }
+  .conn-banner.tier-0 { background: #f9df6d; }
+  .conn-banner.tier-1 { background: #a0c35a; }
+  .conn-banner.tier-2 { background: #b0c4ef; }
+  .conn-banner.tier-3 { background: #ba81c5; }
+  .conn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .conn-tile {
+    aspect-ratio: 1.35; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 6px; font-weight: 800; font-size: 0.82rem;
+    cursor: pointer; user-select: none; word-break: normal; overflow-wrap: break-word;
+  }
+  .conn-tile.selected { background: var(--text); color: var(--surface); border-color: var(--text); transform: scale(0.97); }
+  .mistakes-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; font-size: 0.85rem; font-weight: 700; }
+  .m-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+  .m-dot.used { background: var(--border); }
+
+  /* MODALS */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55);
+    display: none; align-items: center; justify-content: center; padding: 14px; z-index: 90;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 16px; max-width: 540px; width: 100%; max-height: 88vh;
+    overflow-y: auto; padding: 18px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+  }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .modal-head h3 { margin: 0; font-size: 1.1rem; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stat-box { background: var(--surface-2); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .stat-val { font-size: 1.2rem; font-weight: 800; }
+  .stat-lbl { font-size: 0.68rem; color: var(--text-muted); font-weight: 700; }
+  .dist-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 0.8rem; font-weight: 700; }
+  .dist-bar { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 4px; min-width: 24px; text-align: right; }
+  .section-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  .section-card h4 { margin: 0 0 8px; font-size: 0.92rem; }
+  .field-row { margin-bottom: 8px; }
+  .field-row label { display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 4px; color: var(--text-muted); }
+  .helper-text { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+<div id="toast"></div>
+
+<header>
+  <div class="top-bar">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="#2ea39b"/>
+        <path d="M36 14a5 5 0 0 1 5 5v3h7a4 4 0 0 1 4 4v7h-3a5 5 0 0 0 0 10h3v7a4 4 0 0 1-4 4h-7v-3a5 5 0 0 0-10 0v3h-7a4 4 0 0 1-4-4v-7h3a5 5 0 0 0 0-10h-3v-7a4 4 0 0 1 4-4h7v-3a5 5 0 0 1 5-5z" fill="#ffffff"/>
+      </svg>
+      <span>Puzzles</span>
+    </div>
+    <div class="header-right">
+      <div class="pill" title="Daily Grand Slam (Crossword, Wordle, Word Search, Solitaire, Connect)">
+        <span>Slam</span>
+        <span class="slam-dots">
+          <span class="slam-dot" id="slam-cw" title="Daily Crossword"></span>
+          <span class="slam-dot" id="slam-wor" title="Daily Wordle"></span>
+          <span class="slam-dot" id="slam-ws" title="Daily Word Search"></span>
+          <span class="slam-dot" id="slam-sol" title="Daily Solitaire"></span>
+          <span class="slam-dot" id="slam-con" title="Daily Connect"></span>
+        </span>
+      </div>
+      <div class="pill" title="Wordle Daily Streak">🔥 <span id="hdr-streak">0</span></div>
+      <button class="icon-btn" onclick="openModal('stats-modal')" title="Stats">📊</button>
+      <button class="icon-btn" onclick="openModal('settings-modal')" title="Settings & Cloud Sync">⚙️</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="crossword" onclick="switchTab('crossword')">✏️ Crossword</button>
+    <button class="tab-btn" data-tab="wordle" onclick="switchTab('wordle')">🟩 Wordle</button>
+    <button class="tab-btn" data-tab="wordsearch" onclick="switchTab('wordsearch')">🔍 Search</button>
+    <button class="tab-btn" data-tab="solitaire" onclick="switchTab('solitaire')">🃏 Solitaire</button>
+    <button class="tab-btn" data-tab="connections" onclick="switchTab('connections')">🔗 Connect</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 1. CROSSWORD -->
+  <section id="tab-crossword" class="game-panel active">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <select id="cw-puzzle-select" class="select-input" onchange="loadSelectedCrossword()"></select>
+        <label class="btn" style="cursor:pointer">
+          📂 Load .puz
+          <input type="file" accept=".puz" style="display:none" onchange="handlePuzUpload(event)" />
+        </label>
+      </div>
+      <div class="toolbar-group">
+        <span class="pill">⏱ <span id="cw-timer">00:00</span></span>
+        <button class="btn" onclick="toggleCwPause()" id="cw-pause-btn">⏸ Pause</button>
+        <button class="btn" onclick="toggleCwPencil()" id="cw-pencil-btn">✏️ Pencil: OFF</button>
+        <select id="cw-check-select" class="select-input" onchange="handleCwCheck(this)">
+          <option value="">Check / Reveal ▾</option>
+          <option value="check-cell">Check Square</option>
+          <option value="check-word">Check Word</option>
+          <option value="check-all">Check Puzzle</option>
+          <option value="reveal-cell">Reveal Square</option>
+          <option value="reveal-word">Reveal Word</option>
+          <option value="reveal-all">Reveal Puzzle</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cw-layout">
+      <div class="cw-grid-wrap">
+        <div class="cw-pause-overlay" id="cw-pause-overlay">
+          <div style="font-size:1.3rem;font-weight:800">⏸ Crossword Paused</div>
+          <div style="font-size:0.85rem;opacity:0.85">Timer pauses automatically when you switch tabs or lock your phone.</div>
+          <button class="btn btn-primary" onclick="toggleCwPause()">▶ Resume Puzzle</button>
+        </div>
+        <div class="cw-grid" id="cw-grid"></div>
+        <div class="active-clue-banner" onclick="toggleCwDirection()">
+          <span id="cw-active-clue">Select a square to start</span>
+          <span style="font-size:0.72rem;opacity:0.75">[Tab = Next Word]</span>
+        </div>
+        <div class="kb" id="cw-kb"></div>
+      </div>
+
+      <div class="cw-clues">
+        <div class="clue-col">
+          <h4>Across</h4>
+          <div id="cw-across-list"></div>
+        </div>
+        <div class="clue-col">
+          <h4>Down</h4>
+          <div id="cw-down-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. WORDLE -->
+  <section id="tab-wordle" class="game-panel">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button class="btn btn-primary" id="w-mode-daily" onclick="setWordleMode('daily')">📅 Daily</button>
+        <button class="btn" id="w-mode-unlimited" onclick="setWordleMode('unlimited')">♾️ Unlimited</button>
+        <button class="btn" id="w-hard-btn" onclick="toggleHardMode()">Hard: OFF</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn" id="w-new-btn" style="display:none" onclick="newUnlimitedWordle()">Next Word ➔</button>
+        <button class="btn" onclick="shareWordle()">📋 Share</button>
+      </div>
+    </div>
+    <div class="wordle-wrap">
+      <div class="wordle-board" id="wordle-board"></div>
+      <div class="kb" id="wordle-kb"></div>
+    </div>
+  </section>
+
+  <!-- 3. WORD SEARCH -->
+  <section id="tab-wordsearch" class="game-panel">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <select id="ws-theme-select" class="select-input" onchange="startWordSearch(this.value)"></select>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn btn-primary" onclick="startWordSearch(document.getElementById('ws-theme-select').value)">↻ New Grid</button>
+      </div>
+    </div>
+    <div class="ws-layout">
+      <div class="ws-grid" id="ws-grid"></div>
+      <div class="ws-bank">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:0.92rem">Words to Find (<span id="ws-found-count">0</span>/<span id="ws-total-count">0</span>)</strong>
+          <span class="helper-text">Drag across or tap start & end</span>
+        </div>
+        <div class="ws-words" id="ws-words"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SOLITAIRE ASSOCIATIONS -->
+  <section id="tab-solitaire" class="game-panel">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <select id="sol-level-select" class="select-input" onchange="startSolitaire(this.value)"></select>
+        <span class="pill">Moves Left: <strong id="sol-moves">0</strong></span>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn" id="sol-undo-btn" onclick="solUndo()">↩ Undo</button>
+        <button class="btn" onclick="solHint()">💡 Hint</button>
+        <button class="btn btn-primary" onclick="startSolitaire(document.getElementById('sol-level-select').value)">↻ New Deal</button>
+      </div>
+    </div>
+
+    <div class="sol-top">
+      <div class="stock-area">
+        <div class="sol-slot stock-deck" id="sol-stock" onclick="solDraw()">
+          <div>STOCK</div>
+          <div style="font-size:1.1rem" id="sol-stock-count">0</div>
+        </div>
+        <div class="sol-slot" id="sol-waste">
+          <span style="font-size:0.75rem;color:var(--text-muted)">Waste</span>
+        </div>
+      </div>
+      <div class="foundations" id="sol-foundations"></div>
+    </div>
+
+    <div class="tableau" id="sol-tableau"></div>
+    <p class="helper-text" style="margin-top:10px">
+      <strong>Tip:</strong> Drag & drop cards/stacks directly onto foundation boxes or columns (or tap to select & tap destination; double-tap to auto-place).
+    </p>
+  </section>
+
+  <!-- 5. CONNECTIONS -->
+  <section id="tab-connections" class="game-panel">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <select id="conn-select" class="select-input" onchange="loadConnections(this.value)"></select>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn" onclick="shuffleConnections()">🔀 Shuffle</button>
+        <button class="btn" onclick="deselectConnections()">Deselect</button>
+        <button class="btn btn-primary" id="conn-submit-btn" onclick="submitConnections()">Submit (4)</button>
+      </div>
+    </div>
+    <div class="conn-wrap">
+      <div class="conn-solved" id="conn-solved"></div>
+      <div class="conn-grid" id="conn-grid"></div>
+      <div class="mistakes-bar">
+        <span>Mistakes remaining:</span>
+        <span class="m-dot" id="m-dot-0"></span>
+        <span class="m-dot" id="m-dot-1"></span>
+        <span class="m-dot" id="m-dot-2"></span>
+        <span class="m-dot" id="m-dot-3"></span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- STATS MODAL -->
+<div class="modal-backdrop" id="stats-modal" onclick="if(event.target===this)closeModal('stats-modal')">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>📊 Player Statistics</h3>
+      <button class="icon-btn" onclick="closeModal('stats-modal')">✕</button>
+    </div>
+    <div class="section-card">
+      <h4>🏆 Daily Grand Slams (All 5 Daily Puzzles Cleared)</h4>
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:0">
+        <div class="stat-box"><div class="stat-val" id="st-slam-total">0</div><div class="stat-lbl">Total Grand Slams</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-slam-today">0 / 5</div><div class="stat-lbl">Today's Progress</div></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h4>🟩 Wordle (Daily)</h4>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" id="st-w-played">0</div><div class="stat-lbl">Played</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-w-winpct">0%</div><div class="stat-lbl">Win %</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-w-streak">0</div><div class="stat-lbl">Streak</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-w-max">0</div><div class="stat-lbl">Max Streak</div></div>
+      </div>
+      <div id="st-w-dist"></div>
+    </div>
+    <div class="section-card">
+      <h4>✏️ Crosswords & 🔍 Word Search</h4>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" id="st-cw-mini">0</div><div class="stat-lbl">Mini Solved</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-cw-full">0</div><div class="stat-lbl">Full Solved</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-cw-clean">0</div><div class="stat-lbl">Clean Solves</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-ws-won">0</div><div class="stat-lbl">Word Searches</div></div>
+      </div>
+    </div>
+    <div class="section-card" style="margin-bottom:0">
+      <h4>🃏 Solitaire & 🔗 Connections</h4>
+      <div class="stat-grid" style="margin-bottom:0">
+        <div class="stat-box"><div class="stat-val" id="st-sol-won">0</div><div class="stat-lbl">Solitaire Won</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-sol-best">-</div><div class="stat-lbl">Solitaire Best</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-con-won">0</div><div class="stat-lbl">Connect Won</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-con-perf">0</div><div class="stat-lbl">Connect Perfect</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="settings-modal" onclick="if(event.target===this)closeModal('settings-modal')">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>⚙️ Settings & Auto Cloud Sync</h3>
+      <button class="icon-btn" onclick="closeModal('settings-modal')">✕</button>
+    </div>
+    <div class="section-card">
+      <h4>🎨 Color Theme</h4>
+      <div class="toolbar-group">
+        <button class="btn" onclick="setTheme('seaglass')">🌊 Sea-Glass & Sand</button>
+        <button class="btn" onclick="setTheme('light')">☀️ Crisp Light</button>
+        <button class="btn" onclick="setTheme('oled')">🌑 OLED Dark</button>
+      </div>
+    </div>
+    <div class="section-card">
+      <h4>☁️ Two-Way Google Sheet Auto-Sync</h4>
+      <div class="field-row">
+        <label>Apps Script Web App URL (/exec)</label>
+        <input type="text" id="sync-url-input" class="text-input" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveSyncConfig()" />
+      </div>
+      <div class="field-row">
+        <label>Sync Passcode (SECRET_KEY)</label>
+        <input type="password" id="sync-key-input" class="text-input" placeholder="Enter your script passcode" onchange="saveSyncConfig()" />
+      </div>
+      <div class="field-row" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="sync-auto-chk" onchange="saveSyncConfig()" />
+        <label for="sync-auto-chk" style="margin:0;cursor:pointer">Automatically sync two-way whenever online</label>
+      </div>
+      <div class="toolbar-group" style="margin-top:8px">
+        <button class="btn btn-primary" onclick="pushStatsToSheet(true)">⬆️ Force Push</button>
+        <button class="btn" onclick="pullStatsFromSheet(true)">⬇️ Force Pull</button>
+      </div>
+      <div class="helper-text" id="sync-status" style="margin-top:6px">Works 100% offline; automatically syncs newer progress when online.</div>
+    </div>
+    <div class="section-card" style="margin-bottom:0">
+      <h4>💾 Local Backup & Spreadsheet Export</h4>
+      <div class="toolbar-group">
+        <button class="btn" onclick="exportCSV()">📊 Export CSV</button>
+        <button class="btn" onclick="exportJSON()">⬇️ Download JSON</button>
+        <button class="btn" onclick="copySaveCode()">📋 Copy Save Code</button>
+        <button class="btn" onclick="importSaveCode()">📥 Paste Save Code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================== CONFETTI CELEBRATION ENGINE ==================== */
+const confettiCanvas = document.getElementById('confetti-canvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+let confettiParticles = [];
+let confettiAnimId = null;
+
+function resizeConfetti() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeConfetti);
+resizeConfetti();
+
+function launchConfetti(mode = 'win', originEl = null) {
+  const colors = ['#2ea39b', '#f59e0b', '#3b82f6', '#ec4899', '#22c55e', '#a855f7', '#fde047'];
+  const spawnBurst = (count, xRatio, yRatio, spread) => {
+    const ox = confettiCanvas.width * xRatio;
+    const oy = confettiCanvas.height * yRatio;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.random() * Math.PI * 2);
+      const speed = (Math.random() * spread) + 3;
+      confettiParticles.push({
+        x: ox,
+        y: oy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - (yRatio > 0.5 ? 7 : 1),
+        w: Math.random() * 9 + 5,
+        h: Math.random() * 5 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * 360,
+        vRot: (Math.random() - 0.5) * 14,
+        life: 0,
+        maxLife: mode === 'win' ? (170 + Math.random() * 60) : (65 + Math.random() * 25),
+        shape: Math.random() > 0.25 ? 'rect' : 'star'
+      });
+    }
+  };
+
+  if (mode === 'category') {
+    let rx = 0.5, ry = 0.35;
+    if (originEl) {
+      const rect = originEl.getBoundingClientRect();
+      rx = (rect.left + rect.width / 2) / confettiCanvas.width;
+      ry = (rect.top + rect.height / 2) / confettiCanvas.height;
+    }
+    spawnBurst(42, rx, ry, 6.5);
+  } else {
+    // Multi-wave 3.5-second celebration!
+    spawnBurst(75, 0.5, 0.25, 9);
+    setTimeout(() => { spawnBurst(55, 0.15, 0.75, 10); spawnBurst(55, 0.85, 0.75, 10); }, 450);
+    setTimeout(() => { spawnBurst(60, 0.5, 0.15, 8.5); }, 1050);
+  }
+
+  if (!confettiAnimId) renderConfettiLoop();
+}
+
+function renderConfettiLoop() {
+  confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiParticles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.22; // gravity
+    p.vx *= 0.985; // air drag
+    p.rot += p.vRot;
+    p.life++;
+    const alpha = Math.max(0, 1 - (p.life / p.maxLife));
+    confettiCtx.save();
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate((p.rot * Math.PI) / 180);
+    confettiCtx.globalAlpha = alpha;
+    confettiCtx.fillStyle = p.color;
+    confettiCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    confettiCtx.restore();
+  });
+  confettiParticles = confettiParticles.filter(p => p.life < p.maxLife);
+  if (confettiParticles.length > 0) {
+    confettiAnimId = requestAnimationFrame(renderConfettiLoop);
+  } else {
+    confettiAnimId = null;
+  }
+}
+
+/* ==================== STORAGE & TWO-WAY AUTO-SYNC ==================== */
+const STORAGE_KEY = 'puzzles_app_v2';
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const daySeed = () => {
+  const [y,m,d] = todayStr().split('-').map(Number);
+  return y*10000 + m*100 + d;
+};
+
+const defaultState = {
+  updatedAt: 0,
+  theme: 'seaglass',
+  sync: { url: '', key: '', auto: true, lastSync: '' },
+  dailyDone: {},
+  grandSlams: 0,
+  stats: {
+    sol: { played: 0, won: 0, clean: 0, bestMoves: null },
+    wordleDaily: { played: 0, won: 0, streak: 0, maxStreak: 0, dist: [0,0,0,0,0,0], lastDate: '', board: null },
+    wordleUnlim: { played: 0, won: 0 },
+    cw: { miniSolved: 0, miniBest: null, fullSolved: 0, fullBest: null, clean: 0 },
+    ws: { played: 0, won: 0 },
+    conn: { played: 0, won: 0, streak: 0, maxStreak: 0, perfect: 0 }
+  }
+};
+
+let appState = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('daily_puzzle_hub_v1');
+    if (!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    return {
+      ...structuredClone(defaultState),
+      ...parsed,
+      sync: { ...defaultState.sync, ...(parsed.sync || {}) },
+      stats: {
+        ...structuredClone(defaultState.stats),
+        ...(parsed.stats || {}),
+        wordleDaily: { ...defaultState.stats.wordleDaily, ...(parsed.stats?.wordleDaily || {}) }
+      }
+    };
+  } catch {
+    return structuredClone(defaultState);
+  }
+}
+
+function saveState(triggerCloud = false) {
+  appState.updatedAt = Date.now();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  updateHeaderIndicators();
+  if (triggerCloud && appState.sync.auto && appState.sync.url && appState.sync.key) {
+    pushStatsToSheet(false);
+  }
+}
+
+function markDailyComplete(gameKey) {
+  const d = todayStr();
+  if (!appState.dailyDone[d]) appState.dailyDone[d] = {};
+  const keys = ['cw','wor','ws','sol','con'];
+  const wasAll = keys.every(k => appState.dailyDone[d][k]);
+  appState.dailyDone[d][gameKey] = true;
+  const isAll = keys.every(k => appState.dailyDone[d][k]);
+  if (!wasAll && isAll) {
+    appState.grandSlams++;
+    showToast('🏆 DAILY GRAND SLAM! All 5 puzzles cleared!');
+  }
+  saveState(true);
+}
+
+function updateHeaderIndicators() {
+  document.documentElement.setAttribute('data-theme', appState.theme || 'seaglass');
+  document.getElementById('hdr-streak').textContent = appState.stats.wordleDaily.streak || 0;
+  const d = appState.dailyDone[todayStr()] || {};
+  ['cw','wor','ws','sol','con'].forEach(k => {
+    const el = document.getElementById('slam-' + k);
+    if (el) el.classList.toggle('done', !!d[k]);
+  });
+}
+
+function setTheme(t) {
+  appState.theme = t;
+  saveState(false);
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), 2700);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.game-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+  if (tab !== 'crossword' && cwState && !cwState.paused && !cwState.solved) {
+    setCwPaused(true);
+  }
+}
+
+/* ==================== SMART TWO-WAY SYNC ==================== */
+function saveSyncConfig() {
+  appState.sync.url = document.getElementById('sync-url-input').value.trim();
+  appState.sync.key = document.getElementById('sync-key-input').value.trim();
+  appState.sync.auto = document.getElementById('sync-auto-chk').checked;
+  saveState(false);
+  if (appState.sync.auto && appState.sync.url && appState.sync.key) {
+    autoTwoWaySync();
+  }
+}
+
+async function autoTwoWaySync() {
+  const { url, key, auto } = appState.sync;
+  if (!auto || !url || !key || !navigator.onLine) return;
+  try {
+    const res = await fetch(`${url}?key=${encodeURIComponent(key)}`);
+    const data = await res.json();
+    if (!data.ok) return;
+    if (!data.saveJSON) {
+      if (appState.updatedAt > 0) pushStatsToSheet(false);
+      return;
+    }
+    const cloudObj = JSON.parse(data.saveJSON);
+    const cloudTime = cloudObj.updatedAt || 0;
+    const localTime = appState.updatedAt || 0;
+
+    if (cloudTime > localTime + 1500) {
+      const keepSync = appState.sync;
+      localStorage.setItem(STORAGE_KEY, data.saveJSON);
+      appState = loadState();
+      appState.sync = { ...appState.sync, ...keepSync, lastSync: new Date().toLocaleTimeString() };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      updateHeaderIndicators();
+      initWordle();
+      showToast('☁️ Synced latest progress from cloud');
+    } else if (localTime > cloudTime + 1500) {
+      pushStatsToSheet(false);
+    }
+  } catch { /* Offline - ignore silently */ }
+}
+
+async function pushStatsToSheet(manual = true) {
+  const { url, key } = appState.sync;
+  if (!url || !key) { if (manual) showToast('Enter Apps Script URL & Passcode first'); return; }
+  const statusEl = document.getElementById('sync-status');
+  if (manual) statusEl.textContent = 'Pushing to Google Sheet...';
+  const device = /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'Phone' : 'Chromebook';
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        key, device,
+        summary: `Streak:${appState.stats.wordleDaily.streak} | Slams:${appState.grandSlams}`,
+        saveJSON: localStorage.getItem(STORAGE_KEY)
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      appState.sync.lastSync = new Date().toLocaleTimeString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      statusEl.textContent = `✓ Synced at ${appState.sync.lastSync}`;
+      if (manual) showToast('☁️ Pushed to Google Sheet!');
+    } else if (manual) {
+      showToast('Sync failed: check Passcode');
+    }
+  } catch {
+    if (manual) showToast('Offline — saved locally');
+  }
+}
+
+async function pullStatsFromSheet(manual = true) {
+  const { url, key } = appState.sync;
+  if (!url || !key) { if (manual) showToast('Enter Apps Script URL & Passcode first'); return; }
+  try {
+    const res = await fetch(`${url}?key=${encodeURIComponent(key)}`);
+    const data = await res.json();
+    if (data.ok && data.saveJSON) {
+      const keepSync = appState.sync;
+      localStorage.setItem(STORAGE_KEY, data.saveJSON);
+      appState = loadState();
+      appState.sync = { ...appState.sync, ...keepSync, lastSync: new Date().toLocaleTimeString() };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      showToast('☁️ Pulled from Google Sheet!');
+      location.reload();
+    } else if (manual) {
+      showToast(data.ok ? 'Sheet has no save yet' : 'Pull failed: check Passcode');
+    }
+  } catch {
+    if (manual) showToast('Offline — cannot reach Sheet');
+  }
+}
+
+function exportCSV() {
+  const s = appState.stats;
+  const rows = [
+    ['Metric','Value'],['Date',todayStr()],['Grand Slams',appState.grandSlams],
+    ['Wordle Streak',s.wordleDaily.streak],['Wordle Max Streak',s.wordleDaily.maxStreak],
+    ['Crossword Minis',s.cw.miniSolved],['Crossword Full',s.cw.fullSolved],
+    ['Word Searches',s.ws.won],['Solitaire Won',s.sol.won],['Connections Won',s.conn.won]
+  ];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  downloadFile(`puzzles_stats_${todayStr()}.csv`, csv, 'text/csv');
+}
+function exportJSON() { downloadFile(`puzzles_backup_${todayStr()}.json`, localStorage.getItem(STORAGE_KEY) || '{}', 'application/json'); }
+function downloadFile(fn, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = fn; a.click();
+}
+function copySaveCode() {
+  const code = btoa(unescape(encodeURIComponent(localStorage.getItem(STORAGE_KEY) || '{}')));
+  navigator.clipboard.writeText(code).then(() => showToast('📋 Save code copied!'));
+}
+function importSaveCode() {
+  const code = prompt('Paste Save Code:');
+  if (!code) return;
+  try {
+    const json = decodeURIComponent(escape(atob(code.trim())));
+    JSON.parse(json);
+    localStorage.setItem(STORAGE_KEY, json);
+    location.reload();
+  } catch { showToast('⚠️ Invalid save code'); }
+}
+
+function openModal(id) {
+  if (id === 'stats-modal') {
+    const s = appState.stats, d = appState.dailyDone[todayStr()] || {};
+    document.getElementById('st-slam-total').textContent = appState.grandSlams;
+    document.getElementById('st-slam-today').textContent = `${['cw','wor','ws','sol','con'].filter(k=>d[k]).length} / 5`;
+    const wd = s.wordleDaily;
+    document.getElementById('st-w-played').textContent = wd.played;
+    document.getElementById('st-w-winpct').textContent = wd.played ? Math.round((wd.won/wd.played)*100)+'%' : '0%';
+    document.getElementById('st-w-streak').textContent = wd.streak;
+    document.getElementById('st-w-max').textContent = wd.maxStreak;
+    const maxD = Math.max(1, ...wd.dist);
+    document.getElementById('st-w-dist').innerHTML = wd.dist.map((c,i)=>`<div class="dist-row"><span style="width:14px">${i+1}</span><div class="dist-bar" style="width:${Math.max(10,(c/maxD)*85)}%">${c}</div></div>`).join('');
+    document.getElementById('st-cw-mini').textContent = s.cw.miniSolved;
+    document.getElementById('st-cw-full').textContent = s.cw.fullSolved;
+    document.getElementById('st-cw-clean').textContent = s.cw.clean;
+    document.getElementById('st-ws-won').textContent = s.ws.won;
+    document.getElementById('st-sol-won').textContent = s.sol.won;
+    document.getElementById('st-sol-best').textContent = s.sol.bestMoves ?? '-';
+    document.getElementById('st-con-won').textContent = s.conn.won;
+    document.getElementById('st-con-perf').textContent = s.conn.perfect;
+  }
+  if (id === 'settings-modal') {
+    document.getElementById('sync-url-input').value = appState.sync.url || '';
+    document.getElementById('sync-key-input').value = appState.sync.key || '';
+    document.getElementById('sync-auto-chk').checked = appState.sync.auto !== false;
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ==================== 1. CROSSWORD (VERIFIED 5x5, 7x7, 15x15 + TAB) ==================== */
+const CW_CLUES = {
+  ACE:"Hole-in-one or top card",ACT:"Play a part",ADD:"Tally up",AGE:"Maturation",AGO:"In the past",AID:"Helpful help",AIM:"Point at target",AIR:"Atmosphere",ALE:"Pub brew",ALL:"Everything",AND:"Plus",ANT:"Picnic bug",APE:"Gorilla",ARC:"Curved path",ARE:"Exist",ARK:"Noah's boat",ARM:"Limb",ART:"Gallery work",ASH:"Fire residue",ASK:"Inquire",ATE:"Dined",AWE:"Wonder",AXE:"Chopper",
+  BAD:"Not good",BAG:"Tote",BAN:"Prohibit",BAR:"Sandbank",BAT:"Slugger's stick",BAY:"Coastal inlet",BED:"Mattress frame",BEE:"Honey maker",BET:"Wager",BIG:"Large",BIN:"Storage box",BIT:"Small piece",BOG:"Marsh",BOW:"Ship front",BOX:"Carton",BOY:"Young lad",BUD:"Sprout",BUG:"Software glitch",BUN:"Burger roll",BUS:"Transit vehicle",BUY:"Purchase",
+  CAB:"Taxi",CAN:"Tin container",CAP:"Baseball hat",CAR:"Auto",CAT:"Feline",COB:"Corn center",COD:"Atlantic fish",COG:"Gear tooth",COT:"Camp bed",COW:"Dairy animal",CRY:"Weep",CUB:"Bear youngster",CUP:"Trophy",CUT:"Slice",
+  DAB:"Light pat",DAM:"River barrier",DAY:"24 hours",DEN:"Family room",DEW:"Morning moisture",DIG:"Excavate",DIM:"Low light",DIP:"Salsa",DOG:"Canine pal",DOT:"Speck",DRY:"Arid",DUE:"Expected",DUG:"Shoveled",DUO:"Pair",
+  EAR:"Hearing organ",EAT:"Dine",EBB:"Recede",EEL:"Sea fish",EGG:"Omelet base",ELK:"Antlered deer",ELM:"Shade tree",EMU:"Aussie bird",END:"Finish",ERA:"Epoch",EVE:"Night before",EYE:"Sight organ",
+  FAN:"Supporter",FAR:"Distant",FED:"Supplied food",FEE:"Charge",FEW:"Not many",FIG:"Sweet fruit",FIN:"Fish flipper",FIR:"Evergreen",FIT:"Healthy",FIX:"Repair",FLY:"Soar",FOG:"Coastal mist",FOE:"Rival",FOR:"In favor of",FOX:"Woodland mammal",FRY:"Pan cook",FUN:"Enjoyment",FUR:"Animal coat",
+  GAP:"Opening",GAS:"Fuel",GEL:"Styling product",GEM:"Precious stone",GET:"Obtain",GIG:"Band booking",GIN:"Card game",GLOW:"Warm shine",GOT:"Received",GUM:"Chewing treat",GUY:"Fellow",GYM:"Workout room",
+  HAD:"Possessed",HAM:"Deli meat",HAT:"Fedora",HAY:"Baled grass",HEN:"Female chicken",HER:"Belonging to she",HID:"Concealed",HIP:"Trendy",HIT:"Strike",HOG:"Pig",HOP:"Short jump",HOT:"Warm",HUB:"Center point",HUG:"Embrace",HUM:"Sing softly",HUT:"Beach shack",
+  ICE:"Frozen water",ICY:"Frosty",ILL:"Unwell",INK:"Pen fluid",INN:"Cozy lodge",ION:"Charged atom",IRE:"Anger",IVY:"Climbing vine",
+  JAM:"Fruit spread",JAR:"Mason container",JAW:"Mandible",JAY:"Blue bird",JET:"Airliner",JOB:"Occupation",JOG:"Light run",JOY:"Happiness",JUG:"Pitcher",
+  KEY:"Door unlocker",KID:"Youngster",KIN:"Relatives",KIT:"Tool set",
+  LAB:"Science room",LAD:"Young boy",LAG:"Fall behind",LAP:"Track circuit",LAW:"Statute",LAY:"Set down",LED:"Guided",LEG:"Limb",LET:"Allow",LID:"Pot cover",LIE:"Rest flat",LIP:"Cup rim",LIT:"Illuminated",LOG:"Campfire wood",LOT:"Parking area",LOW:"Close to ground",
+  MAN:"Gentleman",MAP:"Atlas chart",MAT:"Welcome rug",MAY:"Spring month",MEN:"Gentlemen",MET:"Encountered",MIX:"Blend",MOB:"Crowd",MOP:"Floor cleaner",MOW:"Trim lawn",MUD:"Wet earth",MUG:"Coffee cup",
+  NAP:"Snooze",NET:"Tennis divider",NEW:"Brand-fresh",NOD:"Head gesture",NOR:"Neither partner",NOT:"Negation",NOW:"Right away",NUT:"Acorn",
+  OAK:"Acorn tree",OAR:"Rowboat paddle",OAT:"Granola grain",ODD:"Unusual",OFF:"Switched down",OIL:"Cooking liquid",OLD:"Aged",ONE:"Single",OPT:"Choose",ORB:"Sphere",ORE:"Mined mineral",OUR:"Belonging to us",OUT:"Baseball call",OWL:"Night bird",OWN:"Possess",
+  PAD:"Note tablet",PAL:"Buddy",PAN:"Skillet",PAR:"Golf standard",PAT:"Gentle tap",PAW:"Dog foot",PAY:"Compensate",PEA:"Green veggie",PEN:"Writer",PET:"Dog or cat",PIE:"Baked dessert",PIG:"Farm animal",PIN:"Bowling target",PIT:"Peach stone",POD:"Whale group",POP:"Soda",POT:"Soup vessel",PRO:"Tour golfer",PRY:"Lever open",PUB:"Tavern",PUG:"Dog breed",PUN:"Wordplay",PUP:"Young dog",PUT:"Place",
+  RAG:"Cloth",RAM:"Male sheep",RAN:"Sprinted",RAT:"Rodent",RAW:"Uncooked",RAY:"Sunbeam",RED:"Stop color",RIB:"BBQ cut",RID:"Clear out",RIG:"Truck",RIM:"Hoop",RIP:"Tear",ROB:"Steal",ROD:"Fishing pole",ROW:"Line of seats",RUB:"Massage",RUG:"Carpet",RUN:"Jog",RYE:"Deli bread",
+  SAD:"Blue",SAP:"Maple source",SAT:"Took a seat",SAW:"Cutting blade",SAY:"Speak",SEA:"Ocean",SET:"Tennis unit",SEW:"Stitch",SHY:"Bashful",SIP:"Taste",SIT:"Be seated",SKI:"Snow runner",SKY:"Cloud canvas",SLY:"Cunning",SOB:"Weep",SOD:"Turf",SON:"Male child",SPA:"Resort",SPY:"Agent",SUB:"Hoagie",SUM:"Total",SUN:"Day star",
+  TAB:"Next clue key",TAG:"Label",TAN:"Bronze",TAP:"Faucet",TAR:"Asphalt",TEA:"Hot brew",TEE:"Golf peg",TEN:"Decade",THE:"Article",TIE:"Even score",TIN:"Can",TIP:"Pointer",TOE:"Foot digit",TON:"2,000 lbs",TOP:"Summit",TOW:"Pull trailer",TOY:"Plaything",TRY:"Attempt",TUB:"Bath",TUG:"Harbor boat",TWO:"Pair",
+  URN:"Coffee server",USE:"Utilize",VAN:"Cargo vehicle",VAT:"Brewing tank",VET:"Animal doctor",VIA:"By way of",VOW:"Promise",
+  WAG:"Tail motion",WAR:"Conflict",WAX:"Candle stuff",WAY:"Route",WEB:"Spider creation",WED:"Marry",WET:"Damp",WHO:"Which person",WHY:"Reason",WIG:"Hairpiece",WIN:"Finish first",WIT:"Humor",WOE:"Sorrow",WON:"Took trophy",WOO:"Court",WRY:"Dryly funny",
+  YAM:"Sweet potato",YAP:"Small bark",YAW:"Boat motion",YEA:"Yes vote",YES:"Agreement",YET:"So far",YEW:"Evergreen",YOU:"Pronoun",
+  ZAP:"Microwave",ZEN:"Calm",ZIP:"Fasten",ZOO:"Wildlife park",
+  ACRE:"Land unit",AGED:"Matured",AIDE:"Helper",AJAR:"Slightly open",ALLY:"Partner",ALOE:"Soothing plant",ALSO:"In addition",ALTO:"Choir voice",AMID:"Among",ANEW:"Freshly",ANTE:"Poker starter",APEX:"Peak",AQUA:"Sea-glass blue-green",ARCH:"Curved doorway",AREA:"Zone",ARID:"Dry",ARMY:"Military",ARTS:"Creative fields",ATOM:"Particle",AUNT:"Relative",AUTO:"Car",AVID:"Keen",AWAY:"On vacation",AXIS:"Chart line",
+  BACK:"Rear",BAKE:"Oven cook",BALD:"Hairless",BALE:"Hay bundle",BALL:"Golf sphere",BAND:"Concert group",BANK:"River edge",BARE:"Uncovered",BARK:"Tree layer",BARN:"Farm building",BASE:"Diamond corner",BASS:"Game fish",BATH:"Soak",BEAD:"Necklace piece",BEAK:"Bill",BEAM:"Sun ray",BEAN:"Coffee seed",BEAR:"Grizzly",BEAT:"Rhythm",BEDS:"Frames",BEEF:"Steak",BEEN:"Existed",BEER:"Guinness",BELL:"Chime",BELT:"Strap",BEND:"Curve",BEST:"Top-notch",BIKE:"Two-wheeler",BILL:"Invoice",BIRD:"Robin",BITE:"Nibble",BLOW:"Gust",BLUE:"Ocean hue",BOAR:"Wild pig",BOAT:"Vessel",BODY:"Torso",BOIL:"Bubble",BOLD:"Daring",BOLT:"Lightning",BOND:"Tie",BONE:"Skeleton part",BOOK:"Novel",BOOM:"Thunder",BOOT:"Footwear",BORE:"Drill",BORN:"Arrived",BOTH:"The two",BOWL:"Dish",BRAG:"Boast",BRAN:"Oat fiber",BREW:"Steep",BRIM:"Hat edge",BULB:"Tulip root",BULK:"Volume",BUMP:"Speed reducer",BURN:"Scorch",BUSH:"Shrub",BUSY:"Occupied",BUZZ:"Hum",
+  CAFE:"Coffee spot",CAGE:"Enclosure",CAKE:"Dessert",CALF:"Young cow",CALL:"Ring",CALM:"Peaceful",CAME:"Arrived",CAMP:"Tent site",CANE:"Walking stick",CAPE:"Headland",CARD:"Ace",CARE:"Tenderness",CART:"Fairway vehicle",CASE:"Suitcase",CASH:"Bills",CAST:"Fishing throw",CAVE:"Cavern",CELL:"Grid square",CHAT:"Talk",CHEF:"Cook",CHEW:"Masticate",CHIN:"Jaw",CHIP:"Short golf shot",CHOP:"Cut",CITY:"Metropolis",CLAM:"Shellfish",CLAP:"Applaud",CLAY:"Pottery earth",CLIP:"Fastener",CLUB:"Driver or iron",CLUE:"Crossword hint",COAL:"Grill fuel",COAT:"Jacket",CODE:"Script text",COIL:"Spring",COIN:"Quarter",COLD:"Chilly",COMB:"Detangler",COME:"Arrive",CONE:"Holder",COOK:"Prepare food",COOL:"Refreshing",COPE:"Manage",COPY:"Duplicate",CORD:"Wire",CORE:"Center",CORK:"Stopper",CORN:"Cob veggie",COST:"Price",COVE:"Sheltered bay",CRAB:"Bay delicacy",CREW:"Team",CROP:"Harvest",CROW:"Black bird",CUBE:"Ice block",CURB:"Street edge",CURE:"Remedy",CURL:"Spiral",CUTE:"Adorable",
+  DAME:"Lady",DAMP:"Moist",DARE:"Challenge",DARK:"Unlit",DART:"Pub missile",DASH:"Sprint",DATA:"Numbers",DATE:"Calendar day",DAWN:"Sunrise",DAYS:"Week parts",DEAL:"Card handout",DEAR:"Cherished",DECK:"Patio or cards",DEED:"Title",DEEP:"Far down",DEER:"Whitetail",DEMO:"Preview",DENT:"Ding",DESK:"Table",DIAL:"Tuner",DICE:"Game cubes",DIET:"Meal plan",DIME:"Ten cents",DINE:"Sup",DIRE:"Urgent",DIRT:"Soil",DISH:"Plate",DIVE:"Plunge",DOCK:"Boat pier",DOES:"Performs",DOLL:"Figure",DOME:"Rounded roof",DONE:"Finished",DOOR:"Entry",DOSE:"Amount",DOVE:"Peace bird",DOWN:"Vertical clue",DOZE:"Nap",DRAG:"Pull",DRAW:"Sketch or tie",DREW:"Sketched",DRIP:"Leak",DROP:"Let fall",DRUM:"Percussion",DUCK:"Waterfowl",DUEL:"Contest",DUET:"Pair song",DULL:"Blunt",DUNE:"Sand hill",DUSK:"Twilight",DUST:"Powder",DUTY:"Task",
+  EACH:"Apiece",EARL:"Noble",EARN:"Make pay",EASE:"Simplicity",EAST:"Sunrise side",EASY:"Effortless",ECHO:"Bounce-back",EDGE:"Border",EDIT:"Revise",EELS:"Fish",EGGS:"Breakfast dozen",ELSE:"Otherwise",EMIT:"Send out",ENDS:"Finishes",ENVY:"Jealousy",EPIC:"Grand tale",EVEN:"Level",EVER:"At any time",EXIT:"Off-ramp",EYED:"Looked at",
+  FACE:"Clock front",FACT:"Truth",FADE:"Dim",FAIL:"Miss mark",FAIR:"Festival",FAKE:"Imitation",FALL:"Autumn",FAME:"Renown",FARE:"Ticket price",FARM:"Barn & fields",FAST:"Speedy",FATE:"Destiny",FEAR:"Fright",FEAT:"Accomplishment",FEED:"Nourish",FEEL:"Sense",FEET:"12-inch units",FELL:"Tumbled",FELT:"Fabric",FERN:"Frond plant",FEST:"Celebration",FILE:"Document",FILL:"Top off",FILM:"Movie",FIND:"Discover",FINE:"Sunny",FIRE:"Blaze",FIRM:"Solid",FISH:"Marlin",FIST:"Closed hand",FIVE:"Nickel",FLAG:"Pin marker",FLAT:"Level",FLAW:"Defect",FLED:"Ran",FLEW:"Soared",FLIP:"Toss",FLOW:"Current",FOAM:"Surf froth",FOIL:"Wrap",FOLD:"Crease",FOLK:"Traditional",FOND:"Affectionate",FOOD:"Groceries",FOOL:"Jester",FOOT:"12 inches",FORD:"Crossing",FORE:"Golf shout",FORK:"Utensil",FORM:"Shape",FORT:"Stronghold",FOUL:"Line call",FOUR:"Foursome",FREE:"No cost",FROG:"Hopper",FROM:"Starting at",FUEL:"Gas",FULL:"Packed",FUME:"Vapor",FUND:"Index investment",FUSE:"Circuit protector",
+  GAIN:"Acquire",GALE:"Strong wind",GAME:"Crossword",GANG:"Crew",GATE:"Entrance",GAVE:"Donated",GAZE:"Look",GEAR:"Equipment",GEMS:"Jewels",GENE:"DNA part",GIFT:"Present",GILD:"Coat in gold",GILL:"Fish breather",GIVE:"Bestow",GLAD:"Happy",GLEN:"Valley",GLOW:"Shine",GLUE:"Adhesive",GOAL:"Score",GOAT:"Climber",GOES:"Travels",GOLD:"First-place medal",GOLF:"Penn National sport",GONE:"Left",GOOD:"Well-done",GOWN:"Dress",GRAB:"Snatch",GRAD:"Alumnus",GRAM:"Weight unit",GRAY:"Shade",GREW:"Sprouted",GRID:"Crossword layout",GRIN:"Smile",GRIP:"Club hold",GRIT:"Resolve",GROW:"Cultivate",GULF:"Sea bay",GULL:"Beach bird",GUST:"Wind burst",
+  HAIR:"Trim",HALF:"50%",HALL:"Corridor",HALT:"Stop",HAND:"Poker cards",HANG:"Suspend",HARD:"Challenging",HARE:"Rabbit",HARM:"Damage",HARP:"Instrument",HASH:"Breakfast",HATE:"Dislike",HAVE:"Own",HAWK:"Raptor",HAZE:"Mist",HEAD:"Top",HEAL:"Recover",HEAP:"Pile",HEAR:"Listen",HEAT:"Warmth",HEED:"Mind",HEEL:"Shoe back",HELD:"Grasped",HELP:"Assist",HERB:"Basil",HERD:"Cattle",HERE:"Present",HERO:"Champion",HIDE:"Conceal",HIGH:"Tall",HIKE:"Trail walk",HILL:"Slope",HINT:"Nudge",HIRE:"Employ",HISS:"Snake sound",HIVE:"Bee home",HOLD:"Keep",HOLE:"Golf target",HOME:"Residence",HOOD:"Car cover",HOOK:"Curving shot",HOOP:"Ring",HOPE:"Optimism",HORN:"Honker",HOSE:"Waterer",HOST:"Organizer",HOUR:"60 mins",HUGE:"Enormous",HULL:"Boat body",HUNT:"Search",HURT:"Injure",HUSH:"Quiet",HYMN:"Song",
+  ICED:"Chilled",ICON:"Symbol",IDEA:"Thought",IDLE:"At rest",IDOL:"Star",INCH:"1/12 foot",INFO:"Details",INTO:"Inside",IRON:"Fairway club",ISLE:"Small island",ITEM:"Entry",
+  JACK:"Card",JADE:"Gemstone",JARS:"Containers",JAZZ:"Music style",JEEP:"4x4",JEST:"Joke",JOIN:"Connect",JOKE:"Gag",JOLT:"Bump",JUMP:"Leap",JUNE:"Summer month",JURY:"Panel",JUST:"Fair",
+  KEEN:"Sharp",KEEP:"Retain",KELP:"Seaweed",KEPT:"Held",KICK:"Punt",KIND:"Thoughtful",KING:"Chess piece",KITE:"Beach flyer",KNEE:"Joint",KNEW:"Was aware",KNIT:"Make sweater",KNOB:"Handle",KNOT:"Speed unit",KNOW:"Comprehend",
+  LACE:"Tie",LACK:"Shortage",LADY:"Woman",LAID:"Placed",LAKE:"Freshwater body",LAMB:"Young sheep",LAMP:"Light",LAND:"Touch down",LANE:"Alley",LARK:"Songbird",LAST:"Final",LATE:"Tardy",LAWN:"Grass",LEAD:"First place",LEAF:"Foliage",LEAK:"Drip",LEAN:"Tilt",LEAP:"Bound",LEFT:"Direction",LEND:"Loan",LENS:"Glass",LESS:"Fewer",LIED:"Fibbed",LIFE:"Vitality",LIFT:"Hoist",LIKE:"Enjoy",LILY:"Flower",LIME:"Citrus",LINE:"Queue",LINK:"URL",LION:"Big cat",LIST:"Checklist",LIVE:"Real-time",LOAD:"Fill",LOAF:"Bread",LOAN:"Mortgage",LOCK:"Deadbolt",LOFT:"Upper room",LOGO:"Emblem",LONE:"Solo",LONG:"Extended",LOOK:"Glance",LOOP:"Circle",LORD:"Noble",LOSE:"Misplace",LOSS:"Defeat",LOST:"Off map",LOUD:"Noisy",LOVE:"Tennis zero",LUCK:"Fortune",LUMP:"Bump",LURE:"Tackle",LUSH:"Green",
+  MADE:"Crafted",MAIL:"Post",MAIN:"Primary",MAKE:"Create",MALL:"Plaza",MANE:"Hair",MANY:"Numerous",MAPS:"Charts",MARK:"Score",MASH:"Crush",MASK:"Snorkel gear",MAST:"Pole",MATE:"Checkmate",MATH:"Arithmetic",MAZE:"Labyrinth",MEAL:"Dinner",MEAN:"Average",MEAT:"Steak",MEET:"Gather",MELT:"Thaw",MEMO:"Note",MEND:"Repair",MENU:"List",MERE:"Simple",MESH:"Netting",MILD:"Pleasant",MILE:"5,280 ft",MILK:"Dairy",MILL:"Grinder",MIND:"Brain",MINE:"Belonging to me",MINT:"Herb",MISS:"Near hit",MIST:"Spray",MOAT:"Trench",MODE:"Setting",MOLD:"Shape",MOOD:"Frame of mind",MOON:"Night orb",MOOR:"Tie boat",MORE:"Extra",MOSS:"Green growth",MOST:"Majority",MOTH:"Insect",MOVE:"Relocate",MUCH:"A lot",MULE:"Pack animal",MUSE:"Inspiration",MUST:"Have to",MUTE:"Silence",
+  NAIL:"Hardware",NAME:"Title",NAVY:"Dark blue",NEAR:"Close",NEAT:"Tidy",NECK:"Collar area",NEED:"Require",NEST:"Thermostat brand",NEWS:"Headlines",NEXT:"Following",NICE:"Pleasant",NINE:"Back ___",NODE:"Point",NONE:"Zero",NOON:"Midday",NORM:"Standard",NOSE:"Scent organ",NOTE:"Tone",NOUN:"Word type",
+  OAKS:"Trees",OARS:"Blades",OATH:"Pledge",OATS:"Grain",OBEY:"Follow",ODDS:"Chance",OILS:"Paints",OKAY:"All right",OMEN:"Sign",ONCE:"One time",ONLY:"Solely",ONTO:"Aware of",OPEN:"Unlocked",ORAL:"Spoken",ORCA:"Whale",OVEN:"Baker",OVER:"Above",OWED:"Had balance",OWLS:"Birds",OWNS:"Possesses",
+  PACE:"Speed",PACK:"Bag",PAGE:"Sheet",PAID:"Settled",PAIL:"Bucket",PAIR:"Duo",PALE:"Light",PALM:"Tree",PANE:"Window glass",PARK:"Recreation area",PART:"Piece",PASS:"Route",PAST:"History",PATH:"Trail",PAVE:"Lay asphalt",PEAK:"Summit",PEAR:"Fruit",PEAS:"Veggies",PEEK:"Look",PEEL:"Rind",PEER:"Equal",PELT:"Rain hard",PERK:"Benefit",PEST:"Nuisance",PETS:"Mack & Gunnar",PICK:"Select",PIER:"Boardwalk landmark",PILE:"Stack",PINE:"Evergreen",PINK:"Hue",PIPE:"Tube",PLAN:"Blueprint",PLAY:"Have fun",PLOT:"Story",PLOW:"Clear snow",PLUG:"Prong",PLUS:"Addition",POEM:"Verse",POET:"Writer",POLE:"Rod",POND:"Small lake",POOL:"Basin",PORK:"BBQ meat",PORT:"Harbor",POSE:"Stance",POST:"Stake",POUR:"Serve",PRAY:"Hope",PREP:"Ready",PREY:"Hunted",PROP:"Stage item",PULL:"Sync down",PUMP:"Inflator",PURE:"Unmixed",PUSH:"Sync up",PUTT:"Green stroke",
+  QUAD:"Courtyard",QUIT:"Stop",QUIZ:"Short test",
+  RACE:"5K",RACK:"Holder",RAFT:"Boat",RAIN:"Shower",RAKE:"Gather leaves",RAMP:"Launch",RANG:"Chimed",RANK:"Standing",RARE:"Uncommon",RASH:"Hasty",RATE:"Speed",READ:"Peruse",REAL:"Authentic",REAM:"500 sheets",REAR:"Back",REED:"Marsh grass",REEF:"Coral ridge",REEL:"Spool",REIN:"Strap",RELY:"Depend",RENT:"Lease",REST:"Relax",RICE:"Grain",RICH:"Wealthy",RIDE:"Trip",RING:"Bell sound",RIPE:"Ready",RISE:"Ascend",RISK:"Gamble",ROAD:"Highway",ROAM:"Wander",ROAR:"Lion sound",ROBE:"Garment",ROCK:"Boulder",RODE:"Took train",ROLE:"Part",ROLL:"Bun",ROOF:"House top",ROOM:"Chamber",ROOT:"Anchor",ROPE:"Line",ROSE:"Flower",ROSY:"Optimistic",RUIN:"Spoil",RULE:"Regulation",RUNG:"Step",RUSH:"Hurry",RUST:"Oxidation",
+  SAFE:"Secure",SAGE:"Herb",SAID:"Spoke",SAIL:"Canvas",SALE:"Discount",SALT:"Mineral",SAME:"Identical",SAND:"Beach grains",SANG:"Vocalized",SANK:"Submerged",SAVE:"Store",SCAN:"Digitize",SCAR:"Mark",SEAL:"Mammal",SEAM:"Stitch line",SEAT:"Chair",SEED:"Starter",SEEK:"Search",SEEM:"Appear",SEEN:"Viewed",SELF:"Oneself",SELL:"Vend",SEND:"Dispatch",SENT:"Mailed",SHED:"Storage",SHIP:"Liner",SHOE:"Sneaker",SHOP:"Store",SHOT:"Swing",SHOW:"Display",SHUT:"Close",SIDE:"Flank",SIGH:"Breath",SIGN:"Plaque",SILK:"Fabric",SING:"Croon",SINK:"Basin",SITE:"Location",SIZE:"Dimension",SKIN:"Peel",SKIP:"Pass over",SLAB:"Slice",SLAM:"Grand ___",SLAP:"High-five",SLED:"Coaster",SLID:"Glided",SLIM:"Slender",SLIP:"Boat dock",SLOT:"Space",SLOW:"Unhurried",SNAP:"Click",SNOW:"Flakes",SOAK:"Drench",SOAP:"Suds",SOAR:"Fly",SOCK:"Warmer",SOFA:"Couch",SOFT:"Plush",SOIL:"Earth",SOLD:"Auctioned",SOLE:"Bottom",SOME:"A few",SONG:"Tune",SOON:"Shortly",SORE:"Achy",SORT:"Categorize",SOUL:"Spirit",SOUP:"Lunch",SOUR:"Tart",SPAN:"Length",SPAR:"Mast",SPIN:"Rotate",SPOT:"Place",STAR:"Sky light",STAY:"Remain",STEM:"Stalk",STEP:"Stair",STEW:"Pot meal",STIR:"Mix",STOP:"Halt",SUMP:"Pump",SUNG:"Chanted",SUNK:"Submerged",SURE:"Certain",SURF:"Waves",SWAN:"Bird",SWAP:"Trade",SWAY:"Rock",SWIM:"Pool lap",
+  TACK:"Turn",TAIL:"Wagger",TAKE:"Grab",TALE:"Story",TALK:"Converse",TALL:"High",TAME:"Docile",TANK:"Reservoir",TAPE:"Roll",TASK:"To-do",TAXI:"Cab",TEAM:"Foursome",TEAR:"Rip",TELL:"Inform",TEND:"Care for",TENT:"Shelter",TERM:"Word",TEST:"Quiz",TEXT:"Message",THAN:"Comparison",THAT:"Item",THEM:"Folks",THEN:"Next",THIN:"Slender",THIS:"Here",THUD:"Drop sound",TIDE:"Ocean rise",TIDY:"Neat",TIER:"Level",TILE:"Letter square",TILL:"Register",TILT:"Lean",TIME:"Clock",TINY:"Small",TIRE:"Wheel",TOAD:"Amphibian",TOLL:"Fee",TONE:"Shade",TOOK:"Grabbed",TOOL:"Hammer",TOPS:"Lids",TORE:"Ripped",TOSS:"Throw",TOUR:"PGA schedule",TOWN:"Municipality",TRAP:"Sand bunker",TRAY:"Platter",TREE:"Maple",TREK:"Hike",TRIM:"Molding",TRIP:"Vacation",TRUE:"Accurate",TUBE:"Float",TUCK:"Fold",TUNA:"Fish",TUNE:"Melody",TURF:"Grass",TURN:"Move",TWIN:"Match",TYPE:"Enter text",
+  UNDO:"Reverse",UNIT:"Measurement",UPON:"On",USED:"Pre-owned",USER:"Player",
+  VAIN:"Conceited",VALE:"Valley",VANE:"Weathercock",VARY:"Differ",VASE:"Holder",VAST:"Immense",VEIL:"Cover",VEIN:"Rib",VENT:"HVAC register",VERB:"Action word",VERY:"Extremely",VEST:"Layer",VIEW:"Vista",VINE:"Climber",VOID:"Empty",VOTE:"Ballot",
+  WADE:"Walk in surf",WAGE:"Pay",WAIT:"Pause",WAKE:"Boat trail",WALK:"Stroll",WALL:"Divider",WAND:"Stick",WANT:"Desire",WARD:"Wing",WARM:"Cozy",WARN:"Alert",WASH:"Clean",WASP:"Insect",WAVE:"Breaker",WEAK:"Frail",WEAR:"Put on",WEED:"Intruder",WEEK:"7 days",WELL:"Healthy",WENT:"Left",WEST:"Sunset side",WHAT:"Which",WHEN:"Time",WHIP:"Whisk",WIDE:"Broad",WIFE:"Spouse",WILD:"Untamed",WILL:"Testament",WIND:"Breeze",WING:"Airfoil",WINK:"Blink",WIPE:"Clean",WIRE:"Cable",WISE:"Sagacious",WISH:"Hope",WITH:"Alongside",WOKE:"Got up",WOLF:"Canine",WOOD:"Driver",WOOL:"Yarn",WORD:"Entry",WORE:"Had on",WORK:"Job",WORM:"Bait",WORN:"Weathered",WRAP:"Roll",WREN:"Songbird",
+  YARD:"Lawn",YARN:"Thread",YEAR:"365 days",YELL:"Shout",YOGA:"Practice",YOKE:"Harness",YOUR:"Belonging to you",ZEAL:"Enthusiasm",ZERO:"Nothing",ZEST:"Peel",ZONE:"Area",ZOOM:"Magnify",
+  ABODE:"Dwelling",ACORN:"Oak seed",ACTOR:"Performer",ADMIT:"Let in",AFTER:"Following",AGAIN:"Once more",AGENT:"Rep",AGILE:"Nimble",AHEAD:"In front",AISLE:"Plane walkway",ALARM:"Wake-up ring",ALBUM:"Photo book",ALERT:"Watchful",ALIGN:"Line up",ALIVE:"Living",ALLEY:"Bowling lane",ALLOW:"Permit",ALONE:"Solo",ALONG:"Beside",ALTER:"Modify",AMEND:"Revise bill",AMPLE:"Plentiful",ANGLE:"Corner",ANKLE:"Joint",APPLE:"Fruit",APRON:"Chef cover",ARENA:"Stadium",ARISE:"Get up",AROMA:"Coffee scent",ARROW:"Direction key",ASSET:"Holding",ATLAS:"Map book",ATONE:"Make amends",ATTIC:"Top storage",AUDIO:"Sound",AUDIT:"Review",AVOID:"Steer clear",AWAKE:"Up",AWARD:"Trophy",AWARE:"Mindful",
+  BACON:"Breakfast strips",BADGE:"ID pass",BAGEL:"Breakfast ring",BAKER:"Bread maker",BATCH:"Trayful",BEACH:"Ocean City shore",BEARD:"Whiskers",BEAST:"Creature",BEGIN:"Start",BELOW:"Under",BENCH:"Park seat",BERRY:"Blueberry",BIRCH:"White tree",BLACK:"Block square",BLADE:"Oar flat",BLANK:"Empty tile",BLAST:"Gust",BLAZE:"Flame",BLEND:"Bean mix",BLOCK:"Solid square",BLOOM:"Flower",BOARD:"Game surface",BOAST:"Brag",BOGEY:"One over par",BONUS:"Extra points",BOOST:"Lift",BOOTH:"Diner table",BOUND:"Headed",BRAIN:"Mind",BRAKE:"Stopper",BRAND:"Label",BRAVE:"Bold",BREAD:"Loaf",BREAK:"Pause",BREED:"Dog variety",BRICK:"Patio paver",BRIEF:"Concise",BRING:"Carry",BRISK:"Crisp",BROAD:"Wide",BROOK:"Stream",BROWN:"Shade",BRUSH:"Applicator",BUILD:"Construct",BUILT:"Constructed",BURST:"Confetti pop",
+  CABIN:"Woods cottage",CABLE:"Wire",CADDY:"Bag carrier",CANAL:"Waterway",CANDY:"Treat",CANOE:"Paddled boat",CARGO:"Freight",CARRY:"Luggage type",CARVE:"Slice",CATCH:"Field",CAUSE:"Reason",CEDAR:"Aromatic wood",CHAIN:"Links",CHAIR:"Seat",CHALK:"Stick",CHAMP:"Winner",CHARM:"Trinket",CHART:"Graph",CHASE:"Pursue",CHECK:"Verify entry",CHEER:"Applaud",CHESS:"Board game",CHEST:"Box",CHIEF:"Leader",CHILD:"Youngster",CHILL:"Relax",CHIME:"Ring",CHORD:"Guitar strum",CHORE:"Task",CIDER:"Apple drink",CIVIC:"Palindrome car",CLAIM:"Assert",CLASS:"Category",CLEAN:"Solve without hints",CLEAR:"Finish category",CLERK:"Court official",CLICK:"Tap",CLIFF:"Bluff",CLIMB:"Ascend",CLOCK:"Timer",CLOSE:"Shut",CLOTH:"Fabric",CLOUD:"Vapor puff",COACH:"Train car",COAST:"Shoreline",COCOA:"Hot chocolate",COLOR:"Aqua",COMET:"Space visitor",CORAL:"Reef builder",COUCH:"Sofa",COUNT:"Tally",COURT:"Tennis venue",COVER:"Jacket",CRAFT:"Skill",CRANE:"Bird or hoist",CRASH:"Wave break",CRATE:"Box",CREAM:"Coffee lightener",CREEK:"Stream",CREST:"Peak",CRISP:"Fresh",CROSS:"Intersect",CROWD:"Spectators",CROWN:"Headpiece",CRUSH:"Orange ___",CRUST:"Pie edge",CURVE:"Bend",CYCLE:"Ride",
+  DAILY:"Every day",DAIRY:"Milk",DANCE:"Waltz",DEALT:"Handed out",DEBUG:"Fix code",DECOR:"Coastal style",DECOY:"Tricky word",DELAY:"Postpone",DELTA:"River mouth",DENIM:"Jeans fabric",DEPOT:"Train station",DEPTH:"Ocean measure",DERBY:"Race",DIARY:"Journal",DIGIT:"Number",DINER:"Restaurant",DIVOT:"Golf turf",DOCKS:"Piers",DODGE:"Evade",DOUBT:"Uncertainty",DOUGH:"Starter",DRAFT:"League pick",DRAIN:"Outlet",DRAMA:"Play",DRANK:"Sipped",DREAM:"Vision",DRESS:"Attire",DRIED:"Dehydrated",DRIFT:"Float",DRILL:"Tool",DRINK:"Beverage",DRIVE:"Tee shot",DROVE:"Piloted",DRYER:"Appliance",DUNES:"Sand hills",
+  EAGER:"Keen",EAGLE:"Two under par",EARLY:"Ahead",EARTH:"Planet",EASEL:"Stand",EATEN:"Consumed",ELBOW:"Arm bend",ELDER:"Senior",ELECT:"Vote in",ELITE:"Top tier",EMBER:"Coal",EMPTY:"Open slot",ENACT:"Pass law",ENEMY:"Rival",ENJOY:"Relish",ENTER:"Submit guess",ENTRY:"Answer",EQUAL:"Even",EQUIP:"Outfit",ERASE:"Clear",ERROR:"Mistake",ESSAY:"Piece",EVENT:"Occasion",EVERY:"All",EXACT:"Precise",EXCEL:"Outshine",EXTRA:"Bonus",
+  FABLE:"Story",FACET:"Side",FAINT:"Dim",FAIRY:"Sprite",FAITH:"Trust",FALSE:"Untrue",FANCY:"Ornate",FAULT:"Serve error",FAVOR:"Kindness",FEAST:"Banquet",FENCE:"Boundary",FERRY:"Boat",FETCH:"Retrieve",FIBER:"Roughage",FIELD:"Grass",FIFTH:"Row 5",FIFTY:"Half century",FINAL:"Last round",FIRST:"Number one",FIXED:"Repaired",FLAME:"Fire",FLASH:"Burst",FLASK:"Carrier",FLEET:"Ships",FLOAT:"Lounger",FLOCK:"Seagulls",FLOOR:"Hardwood",FLOUR:"Baking powder",FLUID:"Liquid",FLUSH:"Poker hand",FOCUS:"Concentrate",FOGGY:"Misty",FORCE:"Strength",FORGE:"Iron ___ course",FORTH:"Back & ___",FOUND:"Discovered",FRAME:"Border",FRESH:"New",FRONT:"Weather edge",FROST:"Ice crystals",FRUIT:"Mango",FULLY:"Completely",FUNNY:"Humorous",
+  GAUGE:"Dial",GHOST:"Sheet figure",GIANT:"Huge",GIVEN:"Bestowed",GLASS:"Sea-___",GLEAM:"Shine",GLIDE:"Soar",GLOBE:"Sphere",GLORY:"Triumph",GLOVE:"Mitt",GNOME:"Statue",GRACE:"Elegance",GRADE:"Yard slope",GRAIN:"Sand particle",GRAND:"Daily ___ Slam",GRANT:"Bestow",GRAPE:"Fruit",GRAPH:"Chart",GRASP:"Hold",GRASS:"Turf",GRATE:"Shredder",GREAT:"Terrific",GREEN:"Putting surface",GREET:"Say hi",GRILL:"BBQ",GRIND:"Crush beans",GROOM:"Brush dog",GROUP:"Quartet",GROVE:"Orchard",GUARD:"Protect",GUESS:"Wordle row",GUEST:"Visitor",GUIDE:"Leader",
+  HABIT:"Routine",HANDY:"Useful",HAPPY:"Joyful",HARSH:"Severe",HASTE:"Hurry",HATCH:"Deck opening",HAVEN:"Harbor",HEART:"Suit",HEAVY:"Weighty",HEDGE:"Shrub row",HELLO:"Greeting",HERBS:"Seasonings",HINGE:"Pivot",HOBBY:"Pastime",HOIST:"Lift",HONEY:"Nectar",HONOR:"Tee order",HORSE:"Racer",HOTEL:"Lodging",HOUSE:"Beach residence",HOVER:"Float",HUMAN:"Person",HUMID:"Muggy",HUMOR:"Comedy",HURRY:"Rush",
+  ICING:"Frosting",IDEAL:"Perfect",IMAGE:"Picture",INDEX:"S&P ___ fund",INNER:"Interior",INPUT:"Entry",IRONY:"Twist",ISSUE:"Edition",IVORY:"Shade",
+  JELLY:"Spread",JEWEL:"Gem",JOINT:"Shared account",JOLLY:"Cheerful",JUDGE:"Official",JUICE:"Morning drink",JUMBO:"Extra large",
+  KAYAK:"Palindrome boat",KHAKI:"Tan fabric",KNACK:"Talent",KNEAD:"Work dough",KNIFE:"Blade",KNOCK:"Tap",KNOWN:"Familiar",
+  LABEL:"Tag",LABOR:"Work",LADLE:"Server",LARGE:"Big",LASER:"Beam",LATER:"Afterward",LAUGH:"Chuckle",LAYER:"Tier",LEARN:"Study",LEASE:"Rental",LEAST:"Minimum",LEAVE:"Depart",LEDGE:"Shelf",LEGAL:"Lawful",LEMON:"Citrus",LEVEL:"Palindrome",LEVER:"Pry bar",LIGHT:"Glow",LIMIT:"Boundary",LINEN:"Summer fabric",LINER:"Ship",LINKS:"Golf course",LOCAL:"Offline on device",LODGE:"Inn",LOGIC:"Reasoning",LOOSE:"Not tight",LOTUS:"Lily",LOWER:"Drop",LOYAL:"Faithful",LUCKY:"Fortunate",LUNCH:"Midday meal",LUNAR:"Moon-related",
+  MACRO:"Script",MAGIC:"Illusion",MAJOR:"Golf tier",MAKER:"Creator",MANGO:"Tropical fruit",MANOR:"Estate",MAPLE:"Syrup tree",MARCH:"Month",MARSH:"Wetland",MATCH:"Pair",MAYOR:"Leader",MEDAL:"Award",MEDIA:"News",MELON:"Cantaloupe",MERGE:"Combine",METAL:"Iron",METER:"Timer",MIDST:"Center",MINOR:"Farm league",MINUS:"Subtraction",MIXER:"Appliance",MODEL:"Prototype",MOIST:"Damp",MONEY:"Currency",MONTH:"Page",MOTOR:"Engine",MOUNT:"Climb",MOUSE:"Pointer",MOVIE:"Film",MUSIC:"Melody",
+  NAMED:"Titled",NAVAL:"Maritime",NERVE:"Courage",NEVER:"Not once",NEWER:"More recent",NIGHT:"Evening",NOBLE:"Honorable",NOISE:"Racket",NORTH:"Top",NOTED:"Jotted",NOVEL:"Book",NURSE:"Caregiver",NYLON:"Fabric",
+  OASIS:"Spring",OCEAN:"Atlantic",OFFER:"Proposal",OFTEN:"Frequently",OLIVE:"Garnish",ONION:"Topping",ONSET:"Start",OPERA:"Sung play",ORBIT:"Path",ORDER:"Sequence",ORGAN:"Instrument",OTHER:"Alternative",OUTER:"Exterior",OWNER:"Proprietor",
+  PAINT:"Color",PANEL:"Board",PAPER:"Sheet",PARTY:"Celebration",PASTA:"Penne",PASTE:"Insert",PATCH:"Fix",PATIO:"Stone deck",PAUSE:"Freeze timer",PEACE:"Calm",PEACH:"Summer fruit",PEARL:"Gem",PEDAL:"Footrest",PENNY:"Cent",PERCH:"Roost",PHONE:"Mobile device",PHOTO:"Snapshot",PIANO:"Instrument",PIECE:"Puzzle part",PILOT:"Captain",PINCH:"Dash",PITCH:"Throw",PIVOT:"Summary table",PIZZA:"Pie",PLACE:"Spot",PLAIN:"Simple",PLANE:"Jet",PLANT:"Greenery",PLATE:"Home base",PLAZA:"Square",POINT:"Score",POKER:"Card game",POLAR:"Arctic",PORCH:"Front deck",POUND:"16 oz",POWER:"Electricity",PRESS:"Push",PRICE:"Cost",PRIME:"Top quality",PRINT:"Hard copy",PRIOR:"Previous",PRIZE:"Trophy",PROOF:"Evidence",PROUD:"Pleased",PULSE:"Heartbeat",PUNCH:"Drink",PURSE:"Bag",
+  QUEEN:"Chess piece",QUERY:"Request",QUEST:"Adventure",QUEUE:"Line",QUICK:"Fast",QUIET:"Peaceful",QUILT:"Blanket",QUOTA:"Limit",QUOTE:"Line",
+  RADAR:"Palindrome",RADIO:"Tuner",RAISE:"Lift",RALLY:"Streak",RANCH:"Farm",RANGE:"Stove",RAPID:"Swift",RATIO:"Proportion",REACH:"Arrive",REACT:"Respond",READY:"Prepared",REALM:"Kingdom",RECAP:"Summary",RELAX:"Unwind",RELAY:"Race",RENEW:"Extend",REPLY:"Answer",RESET:"Start over",RESIN:"Sap",RETRY:"Try again",RHYME:"Match",RIDER:"Passenger",RIDGE:"Crest",RIGHT:"Correct",RINSE:"Wash",RIVAL:"Opponent",RIVER:"Waterway",ROAST:"Coffee batch",ROBIN:"Bird",ROBOT:"Helper",ROCKY:"Bouldery",ROOST:"Perch",ROUGH:"Thick grass",ROUND:"18 holes",ROUTE:"Itinerary",ROYAL:"Kingly",RULER:"Straightedge",
+  SALAD:"Greens",SALSA:"Dip",SANDY:"Beach-toned",SAUCE:"Marinara",SCALE:"Measurer",SCARF:"Wrap",SCENE:"Segment",SCENT:"Aroma",SCOPE:"Range",SCORE:"Tally",SCOUT:"Search",SCREEN:"Monitor",SCREW:"Fastener",SEEDS:"Packets",SENSE:"Intuition",SERVE:"Opener",SEVEN:"Number",SHADE:"Shelter",SHAKE:"Wiggle",SHAPE:"Circle",SHARE:"Copy grid",SHARK:"Predator",SHARP:"Keen",SHEEP:"Flock",SHEET:"Google ___",SHELF:"Ledge",SHELL:"Find",SHIFT:"Modifier",SHINE:"Gleam",SHIRT:"Polo",SHORE:"Surf edge",SHORT:"Brief",SHOUT:"Call",SHRUB:"Bush",SIGHT:"View",SIXTH:"Last guess",SKILL:"Expertise",SLATE:"Stone",SLEEP:"Rest",SLEET:"Icy rain",SLICE:"Curving miss",SLOPE:"Incline",SMALL:"Compact",SMART:"Clever",SMELL:"Scent",SMILE:"Grin",SMOKE:"Plume",SNACK:"Bite",SNAKE:"Draft style",SOLAR:"Sun-powered",SOLID:"Firm",SOLVE:"Complete",SOUND:"Audio",SOUTH:"Bottom",SPACE:"Flip key",SPARE:"Bowling pickup",SPARK:"Flash",SPEAK:"Talk",SPEED:"Velocity",SPELL:"Form words",SPICE:"Cinnamon",SPILL:"Tip over",SPLIT:"Divide",SPORT:"Golf",SQUAD:"Team",STACK:"Card pile",STAGE:"Platform",STAIR:"Step",STAMP:"Mark",STAND:"Booth",STARE:"Gaze",START:"Begin",STATE:"Maryland",STEAM:"Power",STEEL:"Alloy",STEEP:"Sharp",STEER:"Guide",STERN:"Boat rear",STICK:"Blade",STILL:"Quiet",STOCK:"Draw pile",STONE:"Pebble",STORE:"Shop",STORM:"Rain",STORY:"Tale",STOVE:"Range",STRAP:"Handle",STRAW:"Sipper",STUDY:"Review",STYLE:"Aesthetic",SUGAR:"Sweetener",SUITE:"Room set",SUNNY:"Bright",SUPER:"Terrific",SURGE:"Wave",SWAMP:"Marsh",SWEEP:"Clean",SWEET:"Sugary",SWIFT:"Fast",SWING:"Club motion",SYRUP:"Topper",
+  TABLE:"Surface",TASTE:"Flavor",TEACH:"Instruct",TEETH:"Gear parts",TEMPO:"Pace",TENTH:"Hole 10",THANK:"Gratitude",THEME:"Palette",THICK:"Dense",THING:"Object",THINK:"Ponder",THIRD:"Bronze",THREE:"Monitors",THROW:"Toss",THUMB:"Typing digit",TIGER:"Big cat",TIGHT:"Snug",TIMER:"Clock",TIRED:"Sleepy",TITLE:"Heading",TOAST:"Bread",TODAY:"Current date",TOKEN:"Game piece",TOPIC:"Subject",TORCH:"Light",TOTAL:"Sum",TOUCH:"Tap",TOUGH:"Hard",TOWEL:"Blanket",TOWER:"Building",TRACE:"Bourbon",TRACK:"Rails",TRADE:"Swap",TRAIL:"Path",TRAIN:"Locomotive",TREAT:"Biscuit",TREND:"Pattern",TRIAL:"Proceeding",TRICK:"Move",TRUCK:"Rig",TRULY:"Genuinely",TRUNK:"Storage",TRUST:"Confidence",TRUTH:"Fact",TULIP:"Flower",TUNER:"Dial",TWICE:"2x",TWIST:"Turn",
+  UNCLE:"Relative",UNDER:"Below par",UNION:"Alliance",UNITY:"Togetherness",UPPER:"Higher",UPSET:"Win",URBAN:"City",USAGE:"Activity",USUAL:"Customary",
+  VALID:"Real word",VALUE:"Worth",VAULT:"Safe",VENUE:"Location",VERSE:"Stanza",VIDEO:"Clip",VINYL:"Record",VISIT:"Drop by",VITAL:"Essential",VIVID:"Bright",VOICE:"Tone",
+  WAGER:"Bet",WAGON:"Car",WAIST:"Belt line",WALTZ:"Dance",WASTE:"Draw pile",WATCH:"Timepiece",WATER:"Ocean H2O",WAVES:"Surf",WEDGE:"Sand club",WHALE:"Giant",WHEAT:"Grain",WHEEL:"Circle",WHERE:"Question",WHISK:"Beater",WHITE:"Tee color",WHOLE:"Complete",WIDTH:"Columns",WINDY:"Breezy",WOMAN:"Lady",WORLD:"Globe",WORRY:"Fret",WORTH:"Value",WRITE:"Pen",WRONG:"Incorrect",
+  YACHT:"Sailboat",YEAST:"Riser",YIELD:"Sign",YOUNG:"Youthful",YOUTH:"Kids",ZEBRA:"Equine",ZESTY:"Tangy"
+};
+
+const CW_5X5_GRIDS = [
+  ["BEACH","EXTRA","ATLAS","CRAFT","HASTE"],
+  ["BLEND","LINER","ENTRY","NERVE","DRYER"],
+  ["RADAR","ALONE","DOCKS","ANKLE","RESET"],
+  ["LARGE","ACORN","ROBOT","GROVE","ENTER"],
+  [".PAST","PRIOR","AISLE","SOLVE","TREE."],
+  ["CRANE","ROAST","EAGLE","ASSET","METER"],
+  ["SHARE","HAVEN","AVERT","RERUN","TREND"],
+  ["PLANT","LABOR","ABODE","NOISE","TREES"],
+  ["SMART","MEDIA","ADMIT","RIOTS","TASTE"],
+  ["TRAIN","RADIO","AISLE","ISSUE","NOISE"],
+  ["SOLAR","OPERA","LEMON","AROMA","ROAST"],
+  ["GRACE","RAVEN","AVOID","CEASE","ENDED"]
+];
+
+const CW_7X7_GRIDS = [
+  ["WIT.KEY","ATONE..","GENE...",".MERGE.","...VALE","..TENSE","PUT.GEL"],
+  ["FUN.WON","UNIFY..","RICE...",".TENSE.","...CALL","..DENSE","OUR.GET"],
+  ["MOP.BAD","AROMA..","PALE...",".LEDGE.","...ALLY","..CLOSE","ART.WET"],
+  ["ACE.TOP","SHORE..","HEAR...",".EAGLE.","...SAND","..CLEAR","NET.DRY"]
+];
+
+const CW_15X15_GRIDS = [
+  [
+    "WIT.KEY.FUN.WON","ATONE...UNIFY..","GENE....RICE...",".MERGE...TENSE.","...VALE....CALL","..TENSE...DENSE","PUT.GEL.OUR.GET",
+    "...............",
+    "MOP.BAD.ACE.TOP","AROMA...SHORE..","PALE....HEAR...",".LEDGE...EAGLE.","...ALLY....SAND","..CLOSE...CLEAR","ART.WET.NET.DRY"
+  ],
+  [
+    "ACE.TOP.MOP.BAD","SHORE...AROMA..","HEAR....PALE...",".EAGLE...LEDGE.","...SAND....ALLY","..CLEAR...CLOSE","NET.DRY.ART.WET",
+    "...............",
+    "FUN.WON.WIT.KEY","UNIFY...ATONE..","RICE....GENE...",".TENSE...MERGE.","...CALL....VALE","..DENSE...TENSE","OUR.GET.PUT.GEL"
+  ],
+  [
+    "MOP.BAD.WIT.KEY","AROMA...ATONE..","PALE....GENE...",".LEDGE...MERGE.","...ALLY....VALE","..CLOSE...TENSE","ART.WET.PUT.GEL",
+    "...............",
+    "ACE.TOP.FUN.WON","SHORE...UNIFY..","HEAR....RICE...",".EAGLE...TENSE.","...SAND....CALL","..CLEAR...DENSE","NET.DRY.OUR.GET"
+  ]
+];
+
+let cwState = null, cwTimerInterval = null, importedPuzList = [];
+
+function initCrossword() {
+  populateCwSelector();
+  loadSelectedCrossword();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && cwState && !cwState.paused && !cwState.solved) setCwPaused(true);
+  });
+}
+
+function populateCwSelector() {
+  const sel = document.getElementById('cw-puzzle-select');
+  let opts = `<option value="mini5-daily">5×5 Mini: Daily Puzzle</option>` +
+             `<option value="mini5-rand">5×5 Mini: Random New</option>` +
+             `<option value="mini7-rand">7×7 Mini: Random New</option>` +
+             `<option value="full-0">15×15 Full: Classic #1</option>` +
+             `<option value="full-1">15×15 Full: Classic #2</option>` +
+             `<option value="full-2">15×15 Full: Classic #3</option>`;
+  importedPuzList.forEach((p, i) => opts += `<option value="puz-${i}">📁 ${p.title} (${p.size}×${p.size})</option>`);
+  sel.innerHTML = opts;
+}
+
+function loadSelectedCrossword() {
+  const val = document.getElementById('cw-puzzle-select').value;
+  if (val === 'mini5-daily') {
+    const g = CW_5X5_GRIDS[daySeed() % CW_5X5_GRIDS.length];
+    startCrossword({ title: '5×5 Daily Mini', size: 5, grid: g, isMini: true, isDaily: true });
+  } else if (val === 'mini5-rand') {
+    const g = CW_5X5_GRIDS[Math.floor(Math.random() * CW_5X5_GRIDS.length)];
+    startCrossword({ title: '5×5 Mini', size: 5, grid: g, isMini: true, isDaily: false });
+  } else if (val === 'mini7-rand') {
+    const g = CW_7X7_GRIDS[Math.floor(Math.random() * CW_7X7_GRIDS.length)];
+    startCrossword({ title: '7×7 Mini', size: 7, grid: g, isMini: true, isDaily: false });
+  } else if (val.startsWith('full-')) {
+    const idx = Number(val.split('-')[1]);
+    startCrossword({ title: `15×15 Full #${idx+1}`, size: 15, grid: CW_15X15_GRIDS[idx], isMini: false, isDaily: false });
+  } else {
+    startCrossword(importedPuzList[Number(val.split('-')[1])]);
+  }
+}
+
+function startCrossword(puz) {
+  const N = puz.size;
+  const cells = [];
+  let clueNum = 1;
+  const numberMap = { across: {}, down: {} };
+
+  for (let r = 0; r < N; r++) {
+    const row = [];
+    for (let c = 0; c < N; c++) {
+      const sol = puz.grid[r][c];
+      const isBlock = sol === '.';
+      let num = null;
+      if (!isBlock) {
+        const startsA = (c === 0 || puz.grid[r][c-1] === '.') && (c + 1 < N && puz.grid[r][c+1] !== '.');
+        const startsD = (r === 0 || puz.grid[r-1][c] === '.') && (r + 1 < N && puz.grid[r+1][c] !== '.');
+        if (startsA || startsD) {
+          num = clueNum++;
+          if (startsA) {
+            let w = '', cc = c;
+            while (cc < N && puz.grid[r][cc] !== '.') { w += puz.grid[r][cc]; cc++; }
+            numberMap.across[num] = (puz.clues?.across?.[num]) || CW_CLUES[w] || `${w.length}-letter word`;
+          }
+          if (startsD) {
+            let w = '', rr = r;
+            while (rr < N && puz.grid[rr][c] !== '.') { w += puz.grid[rr][c]; rr++; }
+            numberMap.down[num] = (puz.clues?.down?.[num]) || CW_CLUES[w] || `${w.length}-letter word`;
+          }
+        }
+      }
+      row.push({ r, c, sol, isBlock, num, val: '', pencil: false, wrong: false, checkedOk: false });
+    }
+    cells.push(row);
+  }
+
+  let startR = 0, startC = 0;
+  outer: for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!cells[r][c].isBlock) { startR = r; startC = c; break outer; }
+
+  cwState = { puz, N, cells, numberMap, r: startR, c: startC, dir: 'across', pencil: false, seconds: 0, paused: false, solved: false, usedAssist: false };
+  document.getElementById('cw-pause-overlay').classList.remove('show');
+  clearInterval(cwTimerInterval);
+  cwTimerInterval = setInterval(() => {
+    if (document.getElementById('tab-crossword').classList.contains('active') && !cwState.paused && !cwState.solved) {
+      cwState.seconds++;
+      document.getElementById('cw-timer').textContent = fmtTime(cwState.seconds);
+    }
+  }, 1000);
+  renderCrossword();
+}
+
+function fmtTime(sec) { return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`; }
+function toggleCwPause() { if (cwState && !cwState.solved) setCwPaused(!cwState.paused); }
+function setCwPaused(p) {
+  cwState.paused = p;
+  document.getElementById('cw-pause-overlay').classList.toggle('show', p);
+  document.getElementById('cw-pause-btn').textContent = p ? '▶ Resume' : '⏸ Pause';
+}
+function toggleCwPencil() {
+  cwState.pencil = !cwState.pencil;
+  document.getElementById('cw-pencil-btn').textContent = `✏️ Pencil: ${cwState.pencil ? 'ON' : 'OFF'}`;
+}
+function toggleCwDirection() { cwState.dir = cwState.dir === 'across' ? 'down' : 'across'; renderCrossword(); }
+
+function getActiveWordCells() {
+  const { N, cells, r, c, dir } = cwState, list = [];
+  if (dir === 'across') {
+    let sc = c; while (sc > 0 && !cells[r][sc-1].isBlock) sc--;
+    while (sc < N && !cells[r][sc].isBlock) { list.push(cells[r][sc]); sc++; }
+  } else {
+    let sr = r; while (sr > 0 && !cells[sr-1][c].isBlock) sr--;
+    while (sr < N && !cells[sr][c].isBlock) { list.push(cells[sr][c]); sr++; }
+  }
+  return list;
+}
+
+function jumpNextWord(reverse = false) {
+  const entries = [
+    ...Object.keys(cwState.numberMap.across).map(n => ({ dir: 'across', num: Number(n) })),
+    ...Object.keys(cwState.numberMap.down).map(n => ({ dir: 'down', num: Number(n) }))
+  ];
+  if (!entries.length) return;
+  const curStart = getActiveWordCells()[0]?.num;
+  let idx = entries.findIndex(e => e.dir === cwState.dir && e.num === curStart);
+  idx = (idx + (reverse ? -1 : 1) + entries.length) % entries.length;
+  const next = entries[idx];
+  jumpToClue(next.dir, next.num, true);
+}
+
+function jumpToClue(dir, num, focusFirstEmpty = false) {
+  cwState.dir = dir;
+  for (let r = 0; r < cwState.N; r++) {
+    for (let c = 0; c < cwState.N; c++) {
+      if (cwState.cells[r][c].num === Number(num)) {
+        cwState.r = r; cwState.c = c;
+        if (focusFirstEmpty) {
+          const wCells = getActiveWordCells();
+          const empty = wCells.find(wc => !wc.val);
+          if (empty) { cwState.r = empty.r; cwState.c = empty.c; }
+        }
+        renderCrossword();
+        return;
+      }
+    }
+  }
+}
+
+function handleCwCellClick(r, c) {
+  if (cwState.paused || cwState.cells[r][c].isBlock) return;
+  if (cwState.r === r && cwState.c === c) cwState.dir = cwState.dir === 'across' ? 'down' : 'across';
+  else { cwState.r = r; cwState.c = c; }
+  renderCrossword();
+}
+
+function handleCwInput(key) {
+  if (!cwState || cwState.paused || cwState.solved) return;
+  const cell = cwState.cells[cwState.r][cwState.c];
+  if (key === 'BACKSPACE' || key === '⌫') {
+    if (cell.val) { cell.val = ''; cell.wrong = false; cell.checkedOk = false; }
+    else { moveCwCursor(-1); const p = cwState.cells[cwState.r][cwState.c]; p.val = ''; p.wrong = false; }
+    renderCrossword(); return;
+  }
+  if (key === ' ') { toggleCwDirection(); return; }
+  if (['ARROWLEFT','ARROWRIGHT','ARROWUP','ARROWDOWN'].includes(key)) {
+    const dr = key==='ARROWDOWN'?1:(key==='ARROWUP'?-1:0), dc = key==='ARROWRIGHT'?1:(key==='ARROWLEFT'?-1:0);
+    let nr = cwState.r + dr, nc = cwState.c + dc;
+    while (nr>=0 && nr<cwState.N && nc>=0 && nc<cwState.N && cwState.cells[nr][nc].isBlock) { nr += dr; nc += dc; }
+    if (nr>=0 && nr<cwState.N && nc>=0 && nc<cwState.N) { cwState.r = nr; cwState.c = nc; renderCrossword(); }
+    return;
+  }
+  if (/^[A-Z]$/.test(key)) {
+    cell.val = key; cell.pencil = cwState.pencil; cell.wrong = false; cell.checkedOk = false;
+    moveCwCursor(1);
+    checkCwVictory();
+    renderCrossword();
+  }
+}
+
+function moveCwCursor(step) {
+  const { N, cells, dir } = cwState;
+  let r = cwState.r, c = cwState.c;
+  for (let i = 0; i < N * N; i++) {
+    if (dir === 'across') { c += step; if (c >= N) { c = 0; r = (r + 1) % N; } if (c < 0) { c = N - 1; r = (r - 1 + N) % N; } }
+    else { r += step; if (r >= N) { r = 0; c = (c + 1) % N; } if (r < 0) { r = N - 1; c = (c - 1 + N) % N; } }
+    if (!cells[r][c].isBlock) { cwState.r = r; cwState.c = c; return; }
+  }
+}
+
+function handleCwCheck(sel) {
+  const action = sel.value; sel.value = '';
+  if (!action || !cwState || cwState.solved) return;
+  cwState.usedAssist = true;
+  const targets = action.endsWith('cell') ? [cwState.cells[cwState.r][cwState.c]] :
+                  action.endsWith('word') ? getActiveWordCells() : cwState.cells.flat().filter(c => !c.isBlock);
+  if (action.startsWith('check')) {
+    targets.forEach(c => { if (!c.val) return; if (c.val === c.sol) { c.checkedOk = true; c.wrong = false; c.pencil = false; } else { c.wrong = true; c.checkedOk = false; } });
+  } else {
+    targets.forEach(c => { c.val = c.sol; c.pencil = false; c.wrong = false; c.checkedOk = true; });
+    checkCwVictory();
+  }
+  renderCrossword();
+}
+
+function checkCwVictory() {
+  const open = cwState.cells.flat().filter(c => !c.isBlock);
+  if (open.every(c => c.val === c.sol)) {
+    cwState.solved = true;
+    const s = appState.stats.cw;
+    if (cwState.puz.isMini) { s.miniSolved++; if (s.miniBest === null || cwState.seconds < s.miniBest) s.miniBest = cwState.seconds; }
+    else { s.fullSolved++; if (s.fullBest === null || cwState.seconds < s.fullBest) s.fullBest = cwState.seconds; }
+    if (!cwState.usedAssist) s.clean++;
+    if (cwState.puz.isDaily) markDailyComplete('cw'); else saveState(true);
+    launchConfetti('win');
+    showToast(`🎉 Crossword Solved in ${fmtTime(cwState.seconds)}!`);
+  }
+}
+
+function handlePuzUpload(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const bytes = new Uint8Array(e.target.result);
+      const dec = new TextDecoder('ISO-8859-1');
+      const w = bytes[0x2C], h = bytes[0x2D], numClues = bytes[0x2E] | (bytes[0x2F] << 8);
+      if (w !== h || w < 3 || w > 25) throw new Error();
+      const solStr = dec.decode(bytes.slice(0x34, 0x34 + w * h));
+      const grid = []; for (let r = 0; r < h; r++) grid.push(solStr.slice(r * w, (r + 1) * w));
+      let pos = 0x34 + w * h * 2;
+      const readStr = () => { let end = pos; while (end < bytes.length && bytes[end] !== 0) end++; const s = dec.decode(bytes.slice(pos, end)); pos = end + 1; return s; };
+      const title = readStr() || file.name.replace(/\.puz$/i, ''); readStr(); readStr();
+      const rawClues = []; for (let i = 0; i < numClues; i++) rawClues.push(readStr());
+      const clues = { across: {}, down: {} }; let cNum = 1, cIdx = 0;
+      for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
+        if (grid[r][c] === '.') continue;
+        const sA = (c === 0 || grid[r][c-1] === '.') && (c + 1 < w && grid[r][c+1] !== '.');
+        const sD = (r === 0 || grid[r-1][c] === '.') && (r + 1 < h && grid[r+1][c] !== '.');
+        if (sA || sD) { if (sA) clues.across[cNum] = rawClues[cIdx++] || ''; if (sD) clues.down[cNum] = rawClues[cIdx++] || ''; cNum++; }
+      }
+      const puzObj = { title, size: w, grid, clues, isMini: w <= 7, isDaily: false };
+      importedPuzList.push(puzObj); populateCwSelector();
+      document.getElementById('cw-puzzle-select').value = `puz-${importedPuzList.length - 1}`;
+      startCrossword(puzObj); showToast(`📂 Loaded "${title}"`);
+    } catch { showToast('⚠️ Could not parse .puz file'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderCrossword() {
+  const { N, cells, r, c, dir, numberMap } = cwState;
+  const wordCells = getActiveWordCells();
+  const activeStartNum = wordCells[0]?.num;
+  const gridEl = document.getElementById('cw-grid');
+  gridEl.className = `cw-grid size-${N}`;
+  gridEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  gridEl.innerHTML = cells.flat().map(cell => {
+    if (cell.isBlock) return `<div class="cw-cell block"></div>`;
+    const isAct = cell.r === r && cell.c === c;
+    const isWord = wordCells.some(wc => wc.r === cell.r && wc.c === cell.c);
+    const cls = ['cw-cell', isWord?'word-hi':'', isAct?'active-cell':'', cell.pencil?'pencil':'', cell.wrong?'wrong':'', cell.checkedOk?'checked-ok':''].join(' ');
+    return `<div class="${cls}" onclick="handleCwCellClick(${cell.r},${cell.c})">${cell.num?`<span class="cw-num">${cell.num}</span>`:''}<span class="cw-letter">${cell.val}</span></div>`;
+  }).join('');
+  document.getElementById('cw-active-clue').textContent = activeStartNum ? `${activeStartNum}${dir==='across'?'A':'D'}. ${numberMap[dir][activeStartNum] || ''}` : '';
+  document.getElementById('cw-across-list').innerHTML = Object.entries(numberMap.across).map(([num, txt]) => `<div class="clue-item ${dir==='across'&&Number(num)===activeStartNum?'active':''}" onclick="jumpToClue('across',${num})"><strong>${num}.</strong> ${txt}</div>`).join('');
+  document.getElementById('cw-down-list').innerHTML = Object.entries(numberMap.down).map(([num, txt]) => `<div class="clue-item ${dir==='down'&&Number(num)===activeStartNum?'active':''}" onclick="jumpToClue('down',${num})"><strong>${num}.</strong> ${txt}</div>`).join('');
+  const rows = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M','⌫']];
+  document.getElementById('cw-kb').innerHTML = rows.map(row => `<div class="kb-row">${row.map(k => `<button class="kb-key ${k==='⌫'?'wide':''}" onclick="handleCwInput('${k}')">${k}</button>`).join('')}</div>`).join('');
+}
+
+/* ==================== 2. WORDLE (VALIDATED DICTIONARY + BIG KEYS) ==================== */
+const WORDLE_TARGETS = [
+  'CRANE','SLATE','SHARE','TRACE','PLANT','GHOST','BRICK','FLAME','STARE','CLOUD',
+  'MANGO','TIGER','OCEAN','BEACH','WHALE','SHORE','YACHT','WAVES','CORAL','PEARL',
+  'GREEN','EAGLE','BOGEY','SWING','DRIVE','IRONS','WEDGE','PUTTS','LINKS','CADDY',
+  'TRAIN','TRACK','STEAM','COACH','CABIN','ROUTE','CHESS','BOARD','CROWN','STONE',
+  'BREAD','CREAM','ROAST','SPICE','GRAPE','OLIVE','HONEY','LEMON','PEACH','BERRY',
+  'SMART','BRAVE','QUIET','FRESH','CRISP','SOLAR','LUNAR','ORBIT','COMET','SPARK',
+  'LIGHT','SOUND','VOICE','MUSIC','PIANO','CHORD','TEMPO','WALTZ','DANCE','STAGE',
+  'HOUSE','PORCH','PATIO','FENCE','GRASS','MAPLE','CEDAR','BIRCH','ACORN','HEART'
+];
+
+const EXTRA_5 = "ABOUT ABOVE ABUSE ACTOR ACUTE ADMIT ADOPT ADULT AFTER AGAIN AGENT AGREE AHEAD ALARM ALBUM ALERT ALIEN ALIGN ALIKE ALIVE ALLOW ALONE ALONG ALTER ANGEL ANGER ANGLE ANGRY APART APPLE APPLY ARENA ARGUE ARISE ARMOR AROMA ARRAY ARROW ASIDE ASSET ATLAS AUDIO AUDIT AVOID AWAKE AWARD AWARE BADLY BAKER BASES BASIC BASIS BEACH BEGAN BEGIN BEGUN BEING BELOW BENCH BILLY BIRTH BLACK BLAME BLAND BLANK BLAST BLEED BLEND BLESS BLIND BLOCK BLOOD BLOOM BLOWN BLUES BLUNT BOARD BOAST BONUS BOOST BOOTH BOUND BRAIN BRAND BRAVE BREAD BREAK BREED BRICK BRIDE BRIEF BRING BROAD BROKE BROWN BUILD BUILT BUYER CABLE CALIF CARRY CATCH CAUSE CHAIN CHAIR CHART CHASE CHEAP CHECK CHEST CHIEF CHILD CHINA CHOSE CIVIL CLAIM CLASS CLEAN CLEAR CLICK CLOCK CLOSE COACH COAST COULD COUNT COURT COVER CRAFT CRASH CREAM CRIME CROSS CROWD CROWN CURVE CYCLE DAILY DANCE DATED DEALT DEATH DEBUT DELAY DEPTH DOING DOUBT DOZEN DRAFT DRAMA DRAWN DREAM DRESS DRILL DRINK DRIVE DROVE DYING EAGER EARLY EARTH EIGHT ELITE EMPTY ENEMY ENJOY ENTER ENTRY EQUAL ERROR EVENT EVERY EXACT EXIST EXTRA FAITH FALSE FAULT FIBER FIELD FIFTH FIFTY FIGHT FINAL FIRST FIXED FLASH FLEET FLOOR FLUID FOCUS FORCE FORTH FORTY FORUM FOUND FRAME FRANK FRAUD FRESH FRONT FRUIT FULLY FUNNY GIANT GIVEN GLASS GLOBE GOING GRACE GRADE GRAND GRANT GRASS GREAT GREEN GROSS GROUP GROWN GUARD GUESS GUEST GUIDE HAPPY HARRY HEART HEAVY HENCE HENRY HORSE HOTEL HOUSE HUMAN IDEAL IMAGE INDEX INNER INPUT ISSUE JAPAN JIMMY JOINT JONES JUDGE KNOWN LABEL LARGE LASER LATER LAUGH LAYER LEARN LEASE LEAST LEAVE LEGAL LEVEL LEWIS LIGHT LIMIT LINKS LIVES LOCAL LOGIC LOOSE LOWER LUCKY LUNCH LYING MAGIC MAJOR MAKER MARCH MARIA MATCH MAYBE MAYOR MEANT MEDIA METAL MIGHT MINOR MINUS MIXED MODEL MONEY MONTH MORAL MOTOR MOUNT MOUSE MOUTH MOVIE MUSIC NEEDS NEVER NEWLY NIGHT NOISE NORTH NOTED NOVEL NURSE OCCUR OCEAN OFFER OFTEN ORDER OTHER OUGHT PAINT PANEL PAPER PARTY PEACE PETER PHASE PHONE PHOTO PIECE PILOT PITCH PLACE PLAIN PLANE PLANT PLATE POINT POUND POWER PRESS PRICE PRIDE PRIME PRINT PRIOR PRIZE PROOF PROUD PROVE QUEEN QUICK QUIET QUITE RADIO RAISE RANGE RAPID RATIO REACH READY REFER RIGHT RIVAL RIVER ROBIN ROGER ROMAN ROUGH ROUND ROUTE ROYAL RURAL SCALE SCENE SCOPE SCORE SENSE SERVE SEVEN SHALL SHAPE SHARE SHARP SHEET SHELF SHELL SHIFT SHINE SHIRT SHOCK SHOOT SHORT SHOWN SIGHT SINCE SIXTH SIXTY SIZED SKILL SLEEP SLIDE SMALL SMART SMILE SMITH SMOKE SOLID SOLVE SORRY SOUND SOUTH SPACE SPARE SPEAK SPEED SPEND SPENT SPLIT SPOKE SPORT STAFF STAGE STAKE STAND START STATE STEAM STEEL STICK STILL STOCK STONE STOOD STORE STORM STORY STRIP STUCK STUDY STUFF STYLE SUGAR SUITE SUPER SWEET TABLE TAKEN TASTE TAXES TEACH TEETH TERRY TEXAS THANK THEFT THEIR THEME THERE THESE THICK THING THINK THIRD THOSE THREE THREW THROW TIGHT TIMES TIRED TITLE TODAY TOPIC TOTAL TOUCH TOUGH TOWER TRACK TRADE TRAIN TREAT TREND TRIAL TRIED TRIES TRUCK TRULY TRUST TRUTH TWICE UNDER UNDUE UNION UNITY UNTIL UPPER UPSET URBAN USAGE USUAL VALID VALUE VIDEO VIRUS VISIT VITAL VOICE WASTE WATCH WATER WHEEL WHERE WHICH WHILE WHITE WHOLE WHOSE WOMAN WOMEN WORLD WORRY WORSE WORST WORTH WOULD WOUND WRITE WRONG WROTE YIELD YOUNG YOUTH";
+const VALID_5_SET = new Set([
+  ...WORDLE_TARGETS,
+  ...Object.keys(CW_CLUES).filter(w => w.length === 5),
+  ...EXTRA_5.split(/\s+/)
+]);
+
+let wState = { mode: 'daily', hardMode: false, target: '', guesses: [], current: '', over: false, shakeRow: -1, winRow: -1 };
+
+function initWordle() {
+  const wd = appState.stats.wordleDaily;
+  if (wd.lastDate === todayStr() && wd.board) {
+    wState = { ...wState, mode: 'daily', target: wd.board.target, guesses: wd.board.guesses, current: '', over: wd.board.over };
+  } else {
+    setWordleMode('daily'); return;
+  }
+  renderWordle();
+}
+
+function setWordleMode(mode) {
+  wState.mode = mode; wState.winRow = -1;
+  document.getElementById('w-mode-daily').classList.toggle('btn-primary', mode === 'daily');
+  document.getElementById('w-mode-unlimited').classList.toggle('btn-primary', mode === 'unlimited');
+  document.getElementById('w-new-btn').style.display = mode === 'unlimited' ? 'inline-flex' : 'none';
+  if (mode === 'daily') {
+    const wd = appState.stats.wordleDaily;
+    if (wd.lastDate === todayStr() && wd.board) {
+      wState.target = wd.board.target; wState.guesses = wd.board.guesses; wState.current = ''; wState.over = wd.board.over;
+    } else {
+      wState.target = WORDLE_TARGETS[daySeed() % WORDLE_TARGETS.length];
+      wState.guesses = []; wState.current = ''; wState.over = false;
+    }
+  } else { newUnlimitedWordle(); return; }
+  renderWordle();
+}
+
+function newUnlimitedWordle() {
+  wState.target = WORDLE_TARGETS[Math.floor(Math.random() * WORDLE_TARGETS.length)];
+  wState.guesses = []; wState.current = ''; wState.over = false; wState.winRow = -1;
+  renderWordle();
+}
+
+function toggleHardMode() {
+  if (wState.guesses.length > 0 && !wState.over) { showToast('Toggle Hard Mode before first guess'); return; }
+  wState.hardMode = !wState.hardMode;
+  document.getElementById('w-hard-btn').textContent = `Hard: ${wState.hardMode ? 'ON' : 'OFF'}`;
+}
+
+function scoreGuess(guess, target) {
+  const res = Array(5).fill('absent'), tArr = target.split(''), gArr = guess.split('');
+  for (let i = 0; i < 5; i++) if (gArr[i] === tArr[i]) { res[i] = 'correct'; tArr[i] = null; gArr[i] = null; }
+  for (let i = 0; i < 5; i++) { if (!gArr[i]) continue; const idx = tArr.indexOf(gArr[i]); if (idx !== -1) { res[i] = 'present'; tArr[idx] = null; } }
+  return res;
+}
+
+function triggerWordleShake(msg) {
+  showToast(msg);
+  wState.shakeRow = wState.guesses.length;
+  renderWordle();
+  setTimeout(() => { wState.shakeRow = -1; }, 400);
+}
+
+function handleWordleKey(key) {
+  if (wState.over) return;
+  if (key === 'BACKSPACE' || key === '⌫') { wState.current = wState.current.slice(0, -1); renderWordle(); return; }
+  if (key === 'ENTER') {
+    if (wState.current.length < 5) { triggerWordleShake('Not enough letters'); return; }
+    if (!VALID_5_SET.has(wState.current)) { triggerWordleShake('Not in word list'); return; }
+    if (wState.hardMode && wState.guesses.length > 0) {
+      const prev = wState.guesses[wState.guesses.length - 1], ps = scoreGuess(prev, wState.target);
+      for (let i = 0; i < 5; i++) {
+        if (ps[i] === 'correct' && wState.current[i] !== prev[i]) { triggerWordleShake(`Letter ${i+1} must be ${prev[i]}`); return; }
+        if (ps[i] === 'present' && !wState.current.includes(prev[i])) { triggerWordleShake(`Must contain ${prev[i]}`); return; }
+      }
+    }
+    wState.guesses.push(wState.current);
+    const won = wState.current === wState.target;
+    wState.current = '';
+    if (won || wState.guesses.length >= 6) {
+      wState.over = true;
+      if (won) { wState.winRow = wState.guesses.length - 1; launchConfetti('win'); }
+      recordWordleFinish(won, wState.guesses.length);
+    } else if (wState.mode === 'daily') {
+      persistDailyWordleBoard();
+    }
+    renderWordle(); return;
+  }
+  if (/^[A-Z]$/.test(key) && wState.current.length < 5) { wState.current += key; renderWordle(); }
+}
+
+function persistDailyWordleBoard() {
+  const wd = appState.stats.wordleDaily;
+  wd.lastDate = todayStr();
+  wd.board = { target: wState.target, guesses: wState.guesses, over: wState.over };
+  saveState(false);
+}
+
+function recordWordleFinish(won, numGuesses) {
+  if (wState.mode === 'daily') {
+    const wd = appState.stats.wordleDaily; wd.played++;
+    if (won) { wd.won++; wd.streak++; wd.maxStreak = Math.max(wd.maxStreak, wd.streak); wd.dist[numGuesses-1]++; showToast(['Genius!','Magnificent!','Impressive!','Splendid!','Great!','Phew!'][numGuesses-1]); }
+    else { wd.streak = 0; showToast(`Word was ${wState.target}`); }
+    persistDailyWordleBoard();
+    if (won) markDailyComplete('wor'); else saveState(true);
+  } else {
+    appState.stats.wordleUnlim.played++; if (won) appState.stats.wordleUnlim.won++;
+    saveState(false);
+    showToast(won ? `Solved ${wState.target} in ${numGuesses}/6!` : `Word was ${wState.target}`);
+  }
+}
+
+function shareWordle() {
+  if (!wState.guesses.length) { showToast('Play a row first!'); return; }
+  const map = { correct: '🟩', present: '🟨', absent: '⬛' };
+  const grid = wState.guesses.map(g => scoreGuess(g, wState.target).map(s => map[s]).join('')).join('\n');
+  const title = wState.mode === 'daily' ? `Puzzles Wordle (${todayStr()})` : 'Wordle Unlimited';
+  const score = wState.over && wState.guesses[wState.guesses.length-1] === wState.target ? `${wState.guesses.length}/6` : 'X/6';
+  navigator.clipboard.writeText(`${title} ${score}\n\n${grid}`).then(() => showToast('📋 Copied!'));
+}
+
+function renderWordle() {
+  const board = document.getElementById('wordle-board'), keyColors = {};
+  let html = '';
+  for (let r = 0; r < 6; r++) {
+    const guess = wState.guesses[r], isCurrent = !guess && r === wState.guesses.length && !wState.over;
+    const scores = guess ? scoreGuess(guess, wState.target) : [];
+    if (guess) guess.split('').forEach((ch, idx) => {
+      const sc = scores[idx];
+      if (sc === 'correct' || (sc === 'present' && keyColors[ch] !== 'correct') || !keyColors[ch]) keyColors[ch] = sc;
+    });
+    html += `<div class="w-row ${wState.shakeRow === r ? 'shake' : ''}">`;
+    for (let c = 0; c < 5; c++) {
+      const ch = guess ? guess[c] : (isCurrent ? (wState.current[c] || '') : '');
+      const cls = guess ? scores[c] : (ch ? 'filled' : '');
+      const wave = wState.winRow === r ? `win-wave` : '';
+      const delay = wState.winRow === r ? `style="animation-delay:${c*75}ms"` : '';
+      html += `<div class="w-tile ${cls} ${wave}" ${delay}>${ch}</div>`;
+    }
+    html += `</div>`;
+  }
+  board.innerHTML = html;
+  const rows = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['ENTER','Z','X','C','V','B','N','M','⌫']];
+  document.getElementById('wordle-kb').innerHTML = rows.map(row => `<div class="kb-row">${row.map(k => `<button class="kb-key ${k.length>1?'wide':''} ${keyColors[k]||''}" onclick="handleWordleKey('${k}')">${k}</button>`).join('')}</div>`).join('');
+}
+
+/* ==================== 3. CLASSIC WORD SEARCH (12x12) ==================== */
+const WS_PACKS = [
+  { name: 'Daily Mix', words: ['FAIRWAY','BIRDIE','COASTAL','MARINA','EXPRESS','CABOOSE','MAPLE','CEDAR','BOURBON','PUZZLE'] },
+  { name: 'Golf & Links', words: ['DRIVER','BUNKER','EAGLE','CADDIE','PUTTER','WEDGE','GREENS','IRONS','BOGEY','LINKS'] },
+  { name: 'Beach & Ocean', words: ['DOLPHIN','PELICAN','SANDBAR','SURFING','SEAGULL','SHELLS','SUNSET','MARLIN','BREEZE','HARBOR'] },
+  { name: 'Trains & Travel', words: ['ENGINE','SLEEPER','TRESTLE','STATION','TICKET','WINDOW','TUNNEL','BRIDGE','COACH','TRACKS'] },
+  { name: 'Kitchen & Grill', words: ['SKILLET','SPATULA','BRISKET','ROASTED','CINNAMON','GARLIC','PEPPER','SIMMER','SAUCE','PLATTER'] }
+];
+
+let wsState = null;
+
+function initWordSearch() {
+  const sel = document.getElementById('ws-theme-select');
+  sel.innerHTML = WS_PACKS.map((p, i) => `<option value="${i}">${p.name}</option>`).join('') + `<option value="random">🎲 Random Mix</option>`;
+  startWordSearch('0');
+}
+
+function startWordSearch(idx) {
+  const N = 12;
+  let words;
+  if (idx === 'random') {
+    words = [...WS_PACKS.flatMap(p => p.words)].sort(() => Math.random() - 0.5).slice(0, 10);
+  } else if (idx === '0') {
+    const all = WS_PACKS.flatMap(p => p.words);
+    let s = daySeed(); const rnd = () => { s = (s*9301+49297)%233280; return s/233280; };
+    words = [...all].sort(() => rnd() - 0.5).slice(0, 10);
+  } else {
+    words = [...WS_PACKS[Number(idx)].words];
+  }
+
+  const grid = Array.from({ length: N }, () => Array(N).fill(''));
+  const placed = [];
+  const dirs = [[0,1],[1,0],[1,1],[-1,1],[0,-1],[-1,0],[1,-1],[-1,-1]];
+
+  words.sort((a,b) => b.length - a.length).forEach(word => {
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const [dr, dc] = dirs[Math.floor(Math.random() * dirs.length)];
+      const r0 = Math.floor(Math.random() * N), c0 = Math.floor(Math.random() * N);
+      const rEnd = r0 + dr * (word.length - 1), cEnd = c0 + dc * (word.length - 1);
+      if (rEnd < 0 || rEnd >= N || cEnd < 0 || cEnd >= N) continue;
+      let ok = true;
+      for (let k = 0; k < word.length; k++) {
+        const ch = grid[r0 + dr*k][c0 + dc*k];
+        if (ch && ch !== word[k]) { ok = false; break; }
+      }
+      if (ok) {
+        const coords = [];
+        for (let k = 0; k < word.length; k++) {
+          grid[r0 + dr*k][c0 + dc*k] = word[k];
+          coords.push(`${r0+dr*k},${c0+dc*k}`);
+        }
+        placed.push({ word, coords, found: false });
+        break;
+      }
+    }
+  });
+
+  const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!grid[r][c]) grid[r][c] = alpha[Math.floor(Math.random()*26)];
+
+  wsState = { N, grid, placed, isDaily: idx === '0', dragStart: null, dragPath: [], tapStart: null, over: false };
+  appState.stats.ws.played++;
+  saveState(false);
+  renderWordSearch();
+}
+
+function getLineCoords(r0, c0, r1, c1) {
+  const dr = r1 - r0, dc = c1 - c0;
+  if (dr === 0 && dc === 0) return [`${r0},${c0}`];
+  if (dr !== 0 && dc !== 0 && Math.abs(dr) !== Math.abs(dc)) return [];
+  const steps = Math.max(Math.abs(dr), Math.abs(dc));
+  const sr = Math.sign(dr), sc = Math.sign(dc);
+  const path = [];
+  for (let k = 0; k <= steps; k++) path.push(`${r0 + sr*k},${c0 + sc*k}`);
+  return path;
+}
+
+function checkWsSelection(path) {
+  if (!path.length || wsState.over) return;
+  const key = path.join('|'), revKey = [...path].reverse().join('|');
+  const match = wsState.placed.find(p => !p.found && (p.coords.join('|') === key || p.coords.join('|') === revKey));
+  if (match) {
+    match.found = true;
+    wsState.tapStart = null;
+    if (wsState.placed.every(p => p.found)) {
+      wsState.over = true;
+      appState.stats.ws.won++;
+      if (wsState.isDaily) markDailyComplete('ws'); else saveState(true);
+      launchConfetti('win');
+      showToast('🎉 All Words Found!');
+    } else {
+      showToast(`✓ Found ${match.word}!`);
+    }
+  }
+}
+
+function renderWordSearch() {
+  const foundSet = new Set(wsState.placed.filter(p => p.found).flatMap(p => p.coords));
+  const selSet = new Set(wsState.dragPath.length ? wsState.dragPath : (wsState.tapStart ? [wsState.tapStart] : []));
+  const gridEl = document.getElementById('ws-grid');
+  gridEl.innerHTML = '';
+  for (let r = 0; r < wsState.N; r++) {
+    for (let c = 0; c < wsState.N; c++) {
+      const id = `${r},${c}`;
+      const cell = document.createElement('div');
+      cell.className = `ws-cell ${foundSet.has(id)?'found':''} ${selSet.has(id)?'selecting':''}`;
+      cell.textContent = wsState.grid[r][c];
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.onpointerdown = (e) => {
+        e.preventDefault();
+        wsState.dragStart = { r, c };
+        wsState.dragPath = [id];
+        renderWordSearch();
+      };
+      gridEl.appendChild(cell);
+    }
+  }
+
+  gridEl.onpointermove = (e) => {
+    if (!wsState.dragStart) return;
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    if (target && target.classList.contains('ws-cell')) {
+      const r1 = Number(target.dataset.r), c1 = Number(target.dataset.c);
+      const line = getLineCoords(wsState.dragStart.r, wsState.dragStart.c, r1, c1);
+      if (line.length) { wsState.dragPath = line; renderWordSearch(); }
+    }
+  };
+
+  window.onpointerup = () => {
+    if (!wsState || !wsState.dragStart) return;
+    const start = wsState.dragStart;
+    const path = wsState.dragPath;
+    wsState.dragStart = null;
+    wsState.dragPath = [];
+    if (path.length > 1) {
+      checkWsSelection(path);
+    } else {
+      const id = `${start.r},${start.c}`;
+      if (!wsState.tapStart) {
+        wsState.tapStart = id;
+      } else if (wsState.tapStart === id) {
+        wsState.tapStart = null;
+      } else {
+        const [r0, c0] = wsState.tapStart.split(',').map(Number);
+        const line = getLineCoords(r0, c0, start.r, start.c);
+        wsState.tapStart = null;
+        if (line.length > 1) checkWsSelection(line);
+      }
+    }
+    renderWordSearch();
+  };
+
+  const foundCount = wsState.placed.filter(p => p.found).length;
+  document.getElementById('ws-found-count').textContent = foundCount;
+  document.getElementById('ws-total-count').textContent = wsState.placed.length;
+  document.getElementById('ws-words').innerHTML = wsState.placed.map(p => `<span class="ws-tag ${p.found?'done':''}">${p.word}</span>`).join('');
+}
+
+/* ==================== 4. SOLITAIRE ASSOCIATIONS (EASY/MED/HARD/RANDOM + DRAG-AND-DROP) ==================== */
+const SOL_CAT_POOL = [
+  { name: 'GOLF', words: ['DRIVER', 'BUNKER', 'BIRDIE', 'CADDIE'], tier: 'easy' },
+  { name: 'COFFEE', words: ['ESPRESSO', 'LATTE', 'MOCHA', 'ROAST'], tier: 'easy' },
+  { name: 'TREES', words: ['MAPLE', 'CEDAR', 'BIRCH', 'WILLOW'], tier: 'easy' },
+  { name: 'WEATHER', words: ['DRIZZLE', 'BREEZE', 'SQUALL', 'SLEET'], tier: 'easy' },
+  { name: 'KITCHEN', words: ['SKILLET', 'COLANDER', 'SPATULA', 'WHISK'], tier: 'easy' },
+  { name: 'PLANETS', words: ['MERCURY', 'VENUS', 'SATURN', 'NEPTUNE'], tier: 'easy' },
+  { name: 'CITRUS', words: ['LEMON', 'LIME', 'POMELO', 'TANGELO'], tier: 'easy' },
+  { name: 'FABRICS', words: ['LINEN', 'DENIM', 'VELVET', 'FLANNEL'], tier: 'easy' },
+  { name: 'BEACH GEAR', words: ['UMBRELLA', 'COOLER', 'SANDALS', 'TOWEL'], tier: 'easy' },
+  { name: 'SEA LIFE', words: ['DOLPHIN', 'MARLIN', 'STINGRAY', 'PELICAN'], tier: 'easy' },
+  { name: 'TRAINS', words: ['CABOOSE', 'CONDUCTOR', 'SLEEPER', 'TRESTLE'], tier: 'medium' },
+  { name: 'CARD GAMES', words: ['BRIDGE', 'EUCHRE', 'HEARTS', 'SPADES'], tier: 'medium' },
+  { name: 'BOATS', words: ['SCHOONER', 'CATAMARAN', 'DINGHY', 'PONTOON'], tier: 'medium' },
+  { name: 'DOG BREEDS', words: ['BEAGLE', 'BOXER', 'POINTER', 'SETTER'], tier: 'medium' },
+  { name: 'CHEESES', words: ['CHEDDAR', 'GRUYERE', 'BRIE', 'GOUDA'], tier: 'medium' },
+  { name: 'TOOLS', words: ['WRENCH', 'CHISEL', 'LEVEL', 'PLIERS'], tier: 'medium' },
+  { name: 'HAVE KEYS', words: ['PIANO', 'LOCKSMITH', 'FLORIDA', 'MAP'], tier: 'hard' },
+  { name: 'CAN PITCH', words: ['BASEBALL', 'TENT', 'ROOF', 'SALESMAN'], tier: 'hard' },
+  { name: 'HAVE RINGS', words: ['CIRCUS', 'TREE TRUNK', 'BOXING', 'SATURN'], tier: 'hard' },
+  { name: 'HAVE CROWNS', words: ['DENTIST', 'MONARCH', 'MOLAR', 'HAT'], tier: 'hard' },
+  { name: 'CAN RUN', words: ['FAUCET', 'CANDIDATE', 'MASCARA', 'ENGINE'], tier: 'hard' },
+  { name: 'HAVE TEETH', words: ['COMB', 'ZIPPER', 'SAW', 'GEAR'], tier: 'hard' },
+  { name: 'ARE CAST', words: ['SHADOW', 'BALLOT', 'IRON', 'SPELL'], tier: 'hard' },
+  { name: 'BOARD PIECES', words: ['THIMBLE', 'ROOK', 'CHECKER', 'MEEPLE'], tier: 'hard' }
+];
+
+let solState = null;
+
+function initSolitaireSelect() {
+  const sel = document.getElementById('sol-level-select');
+  sel.innerHTML = [
+    `<option value="daily">📅 Daily Mix (5 Cats • 4 Slots)</option>`,
+    `<option value="easy">🟢 Easy (4 Cats • 3 Slots)</option>`,
+    `<option value="medium">🟡 Medium (6 Cats • 4 Slots)</option>`,
+    `<option value="hard">🔴 Hard (8 Cats • 5 Slots)</option>`,
+    `<option value="random">🎲 Random (Easy / Med / Hard)</option>`
+  ].join('');
+  startSolitaire('daily');
+}
+
+function startSolitaire(mode) {
+  let actualMode = mode;
+  if (mode === 'random') {
+    actualMode = ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
+  }
+  const cfg = {
+    daily: { count: 5, slots: 4, moves: 28, label: 'Daily Mix' },
+    easy: { count: 4, slots: 3, moves: 28, label: 'Easy' },
+    medium: { count: 6, slots: 4, moves: 30, label: 'Medium' },
+    hard: { count: 8, slots: 5, moves: 34, label: 'Hard' }
+  }[actualMode] || { count: 5, slots: 4, moves: 28, label: 'Daily Mix' };
+
+  let pool = [...SOL_CAT_POOL];
+  if (mode === 'daily') {
+    let s = daySeed(); const rnd = () => { s = (s*9301+49297)%233280; return s/233280; };
+    pool.sort(() => rnd() - 0.5);
+  } else {
+    pool.sort(() => Math.random() - 0.5);
+  }
+  const chosen = pool.slice(0, cfg.count);
+  const cards = [];
+  chosen.forEach((cat, cIdx) => {
+    cards.push({ id: `cat-${cIdx}`, text: `★ ${cat.name}`, cat: cat.name, isCat: true, faceUp: true });
+    cat.words.forEach((w, wIdx) => cards.push({ id: `w-${cIdx}-${wIdx}`, text: w, cat: cat.name, isCat: false, faceUp: true }));
+  });
+  for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [cards[i],cards[j]] = [cards[j],cards[i]]; }
+
+  const tableau = [[],[],[],[]], colSizes = [2,3,4,4];
+  let cursor = 0;
+  colSizes.forEach((sz, colIdx) => {
+    for (let r = 0; r < sz; r++) {
+      const c = cards[cursor++]; c.faceUp = (r === sz - 1); tableau[colIdx].push(c);
+    }
+  });
+  const stock = cards.slice(cursor).map(c => ({ ...c, faceUp: true }));
+
+  solState = {
+    isDaily: mode === 'daily',
+    modeLabel: cfg.label,
+    totalCats: chosen.length,
+    clearedCats: 0,
+    movesLeft: cfg.moves,
+    movesUsed: 0,
+    usedAssist: false,
+    over: false,
+    stock, waste: [],
+    foundations: Array(cfg.slots).fill(null),
+    tableau,
+    selected: null,
+    history: [],
+    hintIds: []
+  };
+  appState.stats.sol.played++;
+  saveState(false);
+  if (mode === 'random') showToast(`🎲 Random Deal: ${cfg.label} (${cfg.count} categories)`);
+  renderSolitaire();
+}
+
+function pushSolHistory() {
+  solState.history.push(JSON.stringify({
+    movesLeft: solState.movesLeft, movesUsed: solState.movesUsed, clearedCats: solState.clearedCats,
+    stock: solState.stock, waste: solState.waste, foundations: solState.foundations, tableau: solState.tableau
+  }));
+}
+
+function solUndo() {
+  if (!solState || !solState.history.length || solState.over) return;
+  Object.assign(solState, JSON.parse(solState.history.pop()));
+  solState.usedAssist = true; solState.selected = null; solState.hintIds = [];
+  renderSolitaire();
+}
+
+function solConsumeMove() {
+  solState.movesLeft--; solState.movesUsed++; solState.hintIds = [];
+  solState.tableau.forEach(col => { if (col.length && !col[col.length - 1].faceUp) col[col.length - 1].faceUp = true; });
+  if (solState.clearedCats >= solState.totalCats) {
+    solState.over = true; appState.stats.sol.won++;
+    if (!solState.usedAssist) appState.stats.sol.clean++;
+    if (appState.stats.sol.bestMoves === null || solState.movesUsed < appState.stats.sol.bestMoves) appState.stats.sol.bestMoves = solState.movesUsed;
+    if (solState.isDaily) markDailyComplete('sol'); else saveState(true);
+    launchConfetti('win');
+    showToast(`🎉 Board Cleared in ${solState.movesUsed} moves!`);
+  } else if (solState.movesLeft <= 0) {
+    solState.over = true; saveState(false);
+    showToast('Out of moves! Hit New Deal or Undo.');
+  }
+}
+
+function solDraw() {
+  if (solState.over || (!solState.stock.length && !solState.waste.length)) return;
+  pushSolHistory(); solState.selected = null;
+  if (solState.stock.length) solState.waste.push(solState.stock.pop());
+  else { solState.stock = solState.waste.reverse(); solState.waste = []; }
+  solConsumeMove(); renderSolitaire();
+}
+
+function getSelectedCards() {
+  const sel = solState.selected;
+  if (!sel) return [];
+  if (sel.zone === 'waste') return solState.waste.length ? [solState.waste[solState.waste.length - 1]] : [];
+  if (sel.zone === 'tab') return solState.tableau[sel.col].slice(sel.index);
+  return [];
+}
+function removeSelectedCards() {
+  const sel = solState.selected;
+  if (sel.zone === 'waste') solState.waste.pop();
+  if (sel.zone === 'tab') solState.tableau[sel.col].splice(sel.index);
+}
+
+function solClickFoundation(fIdx) {
+  if (solState.over || !solState.selected) return;
+  const slot = solState.foundations[fIdx], moving = getSelectedCards();
+  if (!moving.length) return;
+  const first = moving[0];
+  if (!slot && first.isCat && moving.length === 1) {
+    pushSolHistory(); removeSelectedCards();
+    solState.foundations[fIdx] = { cat: first.cat, words: [] };
+    solState.selected = null; solConsumeMove(); renderSolitaire(); return;
+  }
+  if (slot && !first.isCat && moving.every(c => c.cat === slot.cat)) {
+    pushSolHistory(); removeSelectedCards();
+    moving.forEach(c => slot.words.push(c.text));
+    if (slot.words.length >= 4) {
+      const fEl = document.querySelectorAll('.foundation-slot')[fIdx];
+      launchConfetti('category', fEl);
+      showToast(`✓ ${slot.cat} Cleared!`);
+      solState.foundations[fIdx] = null;
+      solState.clearedCats++;
+    }
+    solState.selected = null; solConsumeMove(); renderSolitaire(); return;
+  }
+  showToast('Drop a ★ Category card in an empty slot first, then matching words!');
+}
+
+function solDropOnTableau(colIdx) {
+  if (solState.over || !solState.selected) return false;
+  if (solState.selected.zone === 'tab' && solState.selected.col === colIdx) return false;
+  const col = solState.tableau[colIdx], moving = getSelectedCards();
+  if (!moving.length) return false;
+  if (!col.length) {
+    pushSolHistory(); removeSelectedCards(); col.push(...moving);
+    solState.selected = null; solConsumeMove(); renderSolitaire(); return true;
+  }
+  const targetBottom = col[col.length - 1];
+  if (!moving[0].isCat && !targetBottom.isCat && moving[0].cat === targetBottom.cat) {
+    pushSolHistory(); removeSelectedCards(); col.push(...moving);
+    solState.selected = null; solConsumeMove(); renderSolitaire(); return true;
+  }
+  return false;
+}
+
+function tryAutoPlaceCard(card) {
+  if (card.isCat) {
+    const emptyIdx = solState.foundations.findIndex(f => f === null);
+    if (emptyIdx !== -1) { solClickFoundation(emptyIdx); return true; }
+  } else {
+    const matchIdx = solState.foundations.findIndex(f => f && f.cat === card.cat);
+    if (matchIdx !== -1) { solClickFoundation(matchIdx); return true; }
+  }
+  return false;
+}
+
+function solHint() {
+  if (solState.over) return;
+  solState.usedAssist = true;
+  const vis = [];
+  if (solState.waste.length) vis.push(solState.waste[solState.waste.length - 1]);
+  solState.tableau.forEach(col => col.forEach(c => { if (c.faceUp) vis.push(c); }));
+  if (solState.foundations.includes(null)) {
+    const cat = vis.find(c => c.isCat);
+    if (cat) { solState.hintIds = [cat.id]; showToast(`💡 Drag or tap ${cat.text} into an open slot!`); renderSolitaire(); return; }
+  }
+  for (const f of solState.foundations) {
+    if (!f) continue;
+    const m = vis.find(c => !c.isCat && c.cat === f.cat);
+    if (m) { solState.hintIds = [m.id]; showToast(`💡 ${m.text} goes into ${f.cat}!`); renderSolitaire(); return; }
+  }
+  for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) {
+    if (!vis[i].isCat && vis[i].cat === vis[j].cat) {
+      solState.hintIds = [vis[i].id, vis[j].id];
+      showToast(`💡 Stack ${vis[i].text} and ${vis[j].text} together!`);
+      renderSolitaire(); return;
+    }
+  }
+  showToast('💡 Draw from the Stock deck!');
+}
+
+/* Unified Drag-and-Drop + Tap for Solitaire */
+function attachSolDrag(el, zone, colIdx, cardIdx) {
+  el.onpointerdown = (e) => {
+    if (solState.over) return;
+    e.stopPropagation();
+    if (zone === 'tab') {
+      const slice = solState.tableau[colIdx].slice(cardIdx);
+      if (slice.length > 1 && slice.some(c => c.isCat || c.cat !== slice[0].cat)) {
+        showToast('Only matching category stacks can move together');
+        return;
+      }
+    }
+
+    const startX = e.clientX, startY = e.clientY;
+    let dragging = false, ghost = null;
+
+    const onMove = (me) => {
+      if (!dragging && Math.hypot(me.clientX - startX, me.clientY - startY) > 7) {
+        dragging = true;
+        solState.selected = zone === 'waste' ? { zone: 'waste' } : { zone: 'tab', col: colIdx, index: cardIdx };
+        const moving = getSelectedCards();
+        ghost = document.createElement('div');
+        ghost.className = `sol-card drag-ghost ${moving[0].isCat ? 'category-card' : ''}`;
+        ghost.textContent = moving.length > 1 ? `${moving[0].text} (+${moving.length-1})` : moving[0].text;
+        document.body.appendChild(ghost);
+      }
+      if (dragging && ghost) {
+        ghost.style.left = (me.clientX - 45) + 'px';
+        ghost.style.top = (me.clientY - 22) + 'px';
+        document.querySelectorAll('.drop-hover').forEach(x => x.classList.remove('drop-hover'));
+        const under = document.elementFromPoint(me.clientX, me.clientY);
+        const fTarget = under?.closest('.foundation-slot');
+        const cTarget = under?.closest('.tab-col');
+        if (fTarget) fTarget.classList.add('drop-hover');
+        else if (cTarget) cTarget.classList.add('drop-hover');
+      }
+    };
+
+    const onUp = (ue) => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.querySelectorAll('.drop-hover').forEach(x => x.classList.remove('drop-hover'));
+      if (ghost) ghost.remove();
+
+      if (dragging) {
+        const under = document.elementFromPoint(ue.clientX, ue.clientY);
+        const fTarget = under?.closest('.foundation-slot');
+        const cTarget = under?.closest('.tab-col');
+        if (fTarget) {
+          solClickFoundation(Number(fTarget.dataset.fidx));
+        } else if (cTarget) {
+          if (!solDropOnTableau(Number(cTarget.dataset.colidx))) renderSolitaire();
+        } else {
+          solState.selected = null;
+          renderSolitaire();
+        }
+        return;
+      }
+
+      const isSame = (zone === 'waste' && solState.selected?.zone === 'waste') ||
+                     (zone === 'tab' && solState.selected?.zone === 'tab' && solState.selected.col === colIdx && solState.selected.index === cardIdx);
+      if (isSame) {
+        const card = zone === 'waste' ? solState.waste[solState.waste.length - 1] : solState.tableau[colIdx][cardIdx];
+        if (!tryAutoPlaceCard(card)) { solState.selected = null; renderSolitaire(); }
+        return;
+      }
+      if (zone === 'tab' && solState.selected) {
+        if (solDropOnTableau(colIdx)) return;
+      }
+      solState.selected = zone === 'waste' ? { zone: 'waste' } : { zone: 'tab', col: colIdx, index: cardIdx };
+      renderSolitaire();
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+}
+
+function renderSolitaire() {
+  document.getElementById('sol-moves').textContent = solState.movesLeft;
+  document.getElementById('sol-undo-btn').disabled = solState.history.length === 0 || solState.over;
+
+  const stockEl = document.getElementById('sol-stock');
+  stockEl.classList.toggle('empty', solState.stock.length === 0);
+  document.getElementById('sol-stock-count').textContent = solState.stock.length ? solState.stock.length : '↻';
+
+  const wasteEl = document.getElementById('sol-waste');
+  wasteEl.innerHTML = '';
+  if (solState.waste.length) {
+    const top = solState.waste[solState.waste.length - 1];
+    const isSel = solState.selected?.zone === 'waste';
+    const isHint = solState.hintIds.includes(top.id);
+    const cardEl = document.createElement('div');
+    cardEl.className = `sol-card ${top.isCat?'category-card':''} ${isSel?'selected':''} ${isHint?'hint-glow':''}`;
+    cardEl.style.width = '100%';
+    cardEl.textContent = top.text;
+    attachSolDrag(cardEl, 'waste', -1, -1);
+    wasteEl.appendChild(cardEl);
+  } else {
+    wasteEl.innerHTML = `<span style="font-size:0.75rem;color:var(--text-muted)">Waste</span>`;
+  }
+
+  const fEl = document.getElementById('sol-foundations');
+  fEl.innerHTML = solState.foundations.map((slot, i) => {
+    if (!slot) return `<div class="foundation-slot" data-fidx="${i}" onclick="solClickFoundation(${i})"><div class="f-title"><span>OPEN SLOT</span><span>★</span></div><div class="f-words" style="color:var(--text-muted)">Drop ★ Category</div></div>`;
+    return `<div class="foundation-slot active-cat" data-fidx="${i}" onclick="solClickFoundation(${i})"><div class="f-title"><span>★ ${slot.cat}</span><span>${slot.words.length}/4</span></div><div class="f-words">${slot.words.length ? slot.words.join(', ') : 'Ready...'}</div></div>`;
+  }).join('');
+
+  const tEl = document.getElementById('sol-tableau');
+  tEl.innerHTML = '';
+  solState.tableau.forEach((col, cIdx) => {
+    const colEl = document.createElement('div');
+    colEl.className = 'tab-col';
+    colEl.dataset.colidx = cIdx;
+    colEl.onclick = () => { if (!col.length && solState.selected) solDropOnTableau(cIdx); };
+    if (!col.length) {
+      colEl.innerHTML = `<div style="text-align:center;font-size:0.72rem;color:var(--text-muted);margin-top:20px">Empty</div>`;
+    } else {
+      col.forEach((card, rIdx) => {
+        const cEl = document.createElement('div');
+        if (!card.faceUp) {
+          cEl.className = 'sol-card face-down';
+        } else {
+          const isSel = solState.selected?.zone === 'tab' && solState.selected.col === cIdx && rIdx >= solState.selected.index;
+          const isHint = solState.hintIds.includes(card.id);
+          cEl.className = `sol-card ${card.isCat?'category-card':''} ${isSel?'selected':''} ${isHint?'hint-glow':''}`;
+          cEl.textContent = card.text;
+          attachSolDrag(cEl, 'tab', cIdx, rIdx);
+        }
+        colEl.appendChild(cEl);
+      });
+    }
+    tEl.appendChild(colEl);
+  });
+}
+
+/* ==================== 5. CONNECTIONS (EXPANDED + CONFETTI) ==================== */
+const CONN_PUZZLES = [
+  { title: 'Daily Connections', groups: [
+    { category: 'GOLF TERMS', words: ['FAIRWAY', 'DIVOT', 'MULLIGAN', 'HANDICAP'] },
+    { category: 'COASTAL COLORS', words: ['AQUA', 'CORAL', 'SAND', 'FOAM'] },
+    { category: 'BOARD GAME PIECES', words: ['THIMBLE', 'ROOK', 'CHECKER', 'MEEPLE'] },
+    { category: 'WORDS BEFORE "HOUSE"', words: ['BEACH', 'COURT', 'LIGHT', 'GREEN'] }
+  ]},
+  { title: 'Puzzle #2: Classic Mix', groups: [
+    { category: 'CITRUS FRUITS', words: ['CLEMENTINE', 'GRAPEFRUIT', 'KUMQUAT', 'YUZU'] },
+    { category: 'DOG BREEDS', words: ['BEAGLE', 'BOXER', 'POINTER', 'SETTER'] },
+    { category: 'THINGS THAT ARE CAST', words: ['SHADOW', 'BALLOT', 'IRON', 'SPELL'] },
+    { category: 'PALINDROMES', words: ['KAYAK', 'LEVEL', 'RADAR', 'CIVIC'] }
+  ]},
+  { title: 'Puzzle #3: On the Move', groups: [
+    { category: 'PARTS OF A TRAIN', words: ['LOCOMOTIVE', 'BOXCAR', 'CABOOSE', 'TENDER'] },
+    { category: 'CARD GAMES', words: ['CANASTA', 'GIN', 'POKER', 'WHIST'] },
+    { category: 'WEATHER PHENOMENA', words: ['MONSOON', 'CHINOOK', 'GALE', 'DERECHO'] },
+    { category: 'WORDS AFTER "SILVER"', words: ['SPRING', 'LINING', 'SCREEN', 'WARE'] }
+  ]},
+  { title: 'Puzzle #4: Clubhouse', groups: [
+    { category: 'TYPES OF CLUBS', words: ['DRIVER', 'PUTTER', 'HYBRID', 'WEDGE'] },
+    { category: 'BAR STAPLES', words: ['BOURBON', 'GUINNESS', 'CRUSH', 'MARGARITA'] },
+    { category: 'SMART HOME BRANDS', words: ['NEST', 'SCHLAGE', 'ROKU', 'GOVEE'] },
+    { category: 'WORDS BEFORE "BOARD"', words: ['SCORE', 'CHALK', 'CUTTING', 'DASH'] }
+  ]},
+  { title: 'Puzzle #5: Outdoor Living', groups: [
+    { category: 'BACKYARD FEATURES', words: ['PATIO', 'PERGOLA', 'FIREPIT', 'PAVERS'] },
+    { category: 'SHADE TREES', words: ['OAK', 'MAPLE', 'SYCAMORE', 'ELM'] },
+    { category: 'MEASUREMENT UNITS', words: ['ACRE', 'KNOT', 'FATHOM', 'LEAGUE'] },
+    { category: 'WORDS BEFORE "STONE"', words: ['MILE', 'KEY', 'STEPPING', 'LIME'] }
+  ]},
+  { title: 'Puzzle #6: Wordplay', groups: [
+    { category: 'COFFEE ORDERS', words: ['AMERICANO', 'MACCHIATO', 'CORTADO', 'FLAT WHITE'] },
+    { category: 'SEABIRDS', words: ['TERN', 'GANNET', 'PUFFIN', 'CORMORANT'] },
+    { category: 'THINGS WITH LEAVES', words: ['TABLE', 'BOOK', 'AUTUMN', 'TEA'] },
+    { category: 'SILENT FIRST LETTER', words: ['KNIGHT', 'WRENCH', 'GNOME', 'PSALM'] }
+  ]}
+];
+
+let connState = null;
+
+function initConnections() {
+  const sel = document.getElementById('conn-select');
+  sel.innerHTML = CONN_PUZZLES.map((p, i) => `<option value="${i}">${p.title}</option>`).join('');
+  loadConnections('0');
+}
+
+function loadConnections(idx) {
+  const puz = CONN_PUZZLES[Number(idx)] || CONN_PUZZLES[0];
+  const tiles = [];
+  puz.groups.forEach((g, tier) => g.words.forEach(w => tiles.push({ word: w, tier, category: g.category })));
+  tiles.sort(() => Math.random() - 0.5);
+  connState = { isDaily: idx === '0', groups: puz.groups, remaining: tiles, solved: [], selected: [], mistakes: 0, over: false };
+  appState.stats.conn.played++; saveState(false); renderConnections();
+}
+
+function shuffleConnections() { if (connState && !connState.over) { connState.remaining.sort(() => Math.random() - 0.5); renderConnections(); } }
+function deselectConnections() { if (connState) { connState.selected = []; renderConnections(); } }
+function toggleConnTile(word) {
+  if (connState.over) return;
+  const idx = connState.selected.indexOf(word);
+  if (idx !== -1) connState.selected.splice(idx, 1);
+  else if (connState.selected.length < 4) connState.selected.push(word);
+  renderConnections();
+}
+
+function submitConnections() {
+  if (connState.over || connState.selected.length !== 4) return;
+  const picked = connState.remaining.filter(t => connState.selected.includes(t.word));
+  const counts = {}; picked.forEach(t => counts[t.tier] = (counts[t.tier] || 0) + 1);
+  const maxMatch = Math.max(...Object.values(counts));
+
+  if (maxMatch === 4) {
+    const tier = picked[0].tier;
+    connState.solved.push({ tier, category: picked[0].category, words: picked.map(p => p.word), fresh: true });
+    connState.remaining = connState.remaining.filter(t => t.tier !== tier);
+    connState.selected = [];
+    if (connState.remaining.length === 0) {
+      connState.over = true;
+      const st = appState.stats.conn; st.won++; st.streak++; st.maxStreak = Math.max(st.maxStreak, st.streak);
+      if (connState.mistakes === 0) st.perfect++;
+      if (connState.isDaily) markDailyComplete('con'); else saveState(true);
+      launchConfetti('win');
+      showToast('🎉 Connections Solved!');
+    } else {
+      launchConfetti('category');
+    }
+  } else {
+    connState.mistakes++;
+    showToast(maxMatch === 3 ? 'One away...' : 'Not quite — try again');
+    if (connState.mistakes >= 4) {
+      connState.over = true; appState.stats.conn.streak = 0; saveState(false);
+      [0,1,2,3].forEach(tier => {
+        if (!connState.solved.some(s => s.tier === tier)) {
+          const g = connState.groups[tier];
+          connState.solved.push({ tier, category: g.category, words: g.words });
+        }
+      });
+      connState.remaining = []; connState.selected = [];
+      showToast('Next time!');
+    }
+  }
+  renderConnections();
+}
+
+function renderConnections() {
+  document.getElementById('conn-submit-btn').disabled = connState.selected.length !== 4 || connState.over;
+  document.getElementById('conn-solved').innerHTML = connState.solved.map(s => {
+    const cls = s.fresh ? 'cat-pulse' : '';
+    s.fresh = false;
+    return `<div class="conn-banner tier-${s.tier} ${cls}"><div style="font-weight:900;font-size:0.88rem">${s.category}</div><div style="font-size:0.8rem;font-weight:600;margin-top:2px">${s.words.join(', ')}</div></div>`;
+  }).join('');
+  document.getElementById('conn-grid').innerHTML = connState.remaining.map(t => `<div class="conn-tile ${connState.selected.includes(t.word)?'selected':''}" onclick="toggleConnTile('${t.word.replace(/'/g,"\\'")}')">${t.word}</div>`).join('');
+  for (let i = 0; i < 4; i++) document.getElementById(`m-dot-${i}`).classList.toggle('used', i < connState.mistakes);
+}
+
+/* ==================== GLOBAL KEYBOARD (WITH DESKTOP TAB FOR CROSSWORDS) ==================== */
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (document.querySelector('.modal-backdrop.open')) return;
+  const activeTab = document.querySelector('.game-panel.active')?.id;
+  const k = e.key.toUpperCase();
+
+  if (activeTab === 'tab-crossword') {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      jumpNextWord(e.shiftKey);
+      return;
+    }
+    if (k === 'BACKSPACE' || k === ' ' || k.startsWith('ARROW') || /^[A-Z]$/.test(k)) {
+      e.preventDefault();
+      handleCwInput(k);
+    }
+  } else if (activeTab === 'tab-wordle') {
+    if (k === 'ENTER' || k === 'BACKSPACE' || /^[A-Z]$/.test(k)) {
+      e.preventDefault();
+      handleWordleKey(k);
+    }
+  }
+});
+
+/* ==================== BOOT ==================== */
+updateHeaderIndicators();
+initCrossword();
+initWordle();
+initWordSearch();
+initSolitaireSelect();
+initConnections();
+autoTwoWaySync();
+</script>
+</body>
+</html>
