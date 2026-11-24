@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Puzzles</title>
+  <link rel="manifest" href="./manifest.json" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232ea39b'/%3E%3Cpath d='M36 14a5 5 0 0 1 5 5v3h7a4 4 0 0 1 4 4v7h-3a5 5 0 0 0 0 10h3v7a4 4 0 0 1-4 4h-7v-3a5 5 0 0 0-10 0v3h-7a4 4 0 0 1-4-4v-7h3a5 5 0 0 0 0-10h-3v-7a4 4 0 0 1 4-4h7v-3a5 5 0 0 1 5-5z' fill='%23ffffff'/%3E%3C/svg%3E" />
 <style>
   :root {
@@ -2447,6 +2448,9 @@ initWordSearch();
 initSolitaireSelect();
 initConnections();
 autoTwoWaySync();
+  if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
