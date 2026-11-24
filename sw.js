@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puzzles-offline-v1';
+const CACHE_NAME = 'puzzles-offline-v2';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
