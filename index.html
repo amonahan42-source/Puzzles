@@ -655,7 +655,7 @@
   <section id="tab-crossword" class="game-panel active">
     <div class="toolbar">
       <div class="toolbar-group">
-        <select id="cw-puzzle-select" class="select-input" onchange="loadSelectedCrossword()"></select>
+        <select id="cw-puzzle-select" class="select-input" onchange="loadSelectedCrossword(true)"></select>
         <label class="btn" style="cursor:pointer">
           📂 Load .puz
           <input type="file" accept=".puz" style="display:none" onchange="handlePuzUpload(event)" />
@@ -946,7 +946,6 @@ function launchConfetti(mode = 'win', originEl = null) {
     }
     spawnBurst(42, rx, ry, 6.5);
   } else {
-    // Multi-wave 3.5-second celebration!
     spawnBurst(75, 0.5, 0.25, 9);
     setTimeout(() => { spawnBurst(55, 0.15, 0.75, 10); spawnBurst(55, 0.85, 0.75, 10); }, 450);
     setTimeout(() => { spawnBurst(60, 0.5, 0.15, 8.5); }, 1050);
@@ -960,8 +959,8 @@ function renderConfettiLoop() {
   confettiParticles.forEach(p => {
     p.x += p.vx;
     p.y += p.vy;
-    p.vy += 0.22; // gravity
-    p.vx *= 0.985; // air drag
+    p.vy += 0.22;
+    p.vx *= 0.985;
     p.rot += p.vRot;
     p.life++;
     const alpha = Math.max(0, 1 - (p.life / p.maxLife));
@@ -998,7 +997,7 @@ const defaultState = {
   sync: { url: '', key: '', auto: true, lastSync: '' },
   dailyDone: {},
   grandSlams: 0,
-  inProgress: { cw: null, ws: null, sol: null, conn: null },
+  inProgress: { cwActive: 'mini5-daily', cwMap: {}, ws: null, sol: null, conn: null },
   stats: {
     sol: { played: 0, won: 0, clean: 0, bestMoves: null },
     wordleDaily: { played: 0, won: 0, streak: 0, maxStreak: 0, dist: [0,0,0,0,0,0], lastDate: '', board: null },
@@ -1019,6 +1018,7 @@ function loadState() {
     return {
       ...structuredClone(defaultState),
       ...parsed,
+      inProgress: { ...defaultState.inProgress, ...(parsed.inProgress || {}), cwMap: { ...(parsed.inProgress?.cwMap || {}) } },
       sync: { ...defaultState.sync, ...(parsed.sync || {}) },
       stats: {
         ...structuredClone(defaultState.stats),
@@ -1041,7 +1041,7 @@ function saveState(triggerCloud = false) {
 }
 
 function saveBoardProgress(key, data) {
-  if (!appState.inProgress) appState.inProgress = {};
+  if (!appState.inProgress) appState.inProgress = { cwActive: 'mini5-daily', cwMap: {} };
   appState.inProgress[key] = data;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
 }
@@ -1246,7 +1246,7 @@ function openModal(id) {
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-/* ==================== 1. CROSSWORD (VERIFIED 5x5, 7x7, 15x15 + TAB) ==================== */
+/* ==================== 1. CROSSWORD (PER-PUZZLE SAVE + TAB) ==================== */
 const CW_CLUES = {
   ACE:"Hole-in-one or top card",ACT:"Play a part",ADD:"Tally up",AGE:"Maturation",AGO:"In the past",AID:"Helpful help",AIM:"Point at target",AIR:"Atmosphere",ALE:"Pub brew",ALL:"Everything",AND:"Plus",ANT:"Picnic bug",APE:"Gorilla",ARC:"Curved path",ARE:"Exist",ARK:"Noah's boat",ARM:"Limb",ART:"Gallery work",ASH:"Fire residue",ASK:"Inquire",ATE:"Dined",AWE:"Wonder",AXE:"Chopper",
   BAD:"Not good",BAG:"Tote",BAN:"Prohibit",BAR:"Sandbank",BAT:"Slugger's stick",BAY:"Coastal inlet",BED:"Mattress frame",BEE:"Honey maker",BET:"Wager",BIG:"Large",BIN:"Storage box",BIT:"Small piece",BOG:"Marsh",BOW:"Ship front",BOX:"Carton",BOY:"Young lad",BUD:"Sprout",BUG:"Software glitch",BUN:"Burger roll",BUS:"Transit vehicle",BUY:"Purchase",
@@ -1363,10 +1363,19 @@ const CW_15X15_GRIDS = [
 
 let cwState = null, cwTimerInterval = null, importedPuzList = [];
 
+function getCwStorageKey(selectVal) {
+  if (selectVal === 'mini5-daily') return `mini5-daily-${todayStr()}`;
+  return selectVal;
+}
+
 function persistCwProgress() {
   if (!cwState) return;
-  saveBoardProgress('cw', {
-    selectVal: document.getElementById('cw-puzzle-select').value,
+  if (!appState.inProgress.cwMap) appState.inProgress.cwMap = {};
+  const selectVal = document.getElementById('cw-puzzle-select').value;
+  const storeKey = getCwStorageKey(selectVal);
+  appState.inProgress.cwActive = selectVal;
+  appState.inProgress.cwMap[storeKey] = {
+    selectVal,
     puz: cwState.puz,
     cells: cwState.cells,
     r: cwState.r,
@@ -1376,24 +1385,25 @@ function persistCwProgress() {
     seconds: cwState.seconds,
     solved: cwState.solved,
     usedAssist: cwState.usedAssist
-  });
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
 }
 
 function resetCurrentCrossword() {
-  saveBoardProgress('cw', null);
-  loadSelectedCrossword();
+  const selectVal = document.getElementById('cw-puzzle-select').value;
+  const storeKey = getCwStorageKey(selectVal);
+  if (appState.inProgress?.cwMap) delete appState.inProgress.cwMap[storeKey];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  loadSelectedCrossword(false);
 }
 
 function initCrossword() {
   populateCwSelector();
-  const saved = appState.inProgress?.cw;
-  if (saved && saved.puz && saved.cells && !saved.solved) {
-    const sel = document.getElementById('cw-puzzle-select');
-    if ([...sel.options].some(o => o.value === saved.selectVal)) sel.value = saved.selectVal;
-    startCrossword(saved.puz, saved);
-  } else {
-    loadSelectedCrossword();
-  }
+  const sel = document.getElementById('cw-puzzle-select');
+  const activeVal = appState.inProgress?.cwActive || 'mini5-daily';
+  if ([...sel.options].some(o => o.value === activeVal)) sel.value = activeVal;
+  loadSelectedCrossword(true);
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && cwState && !cwState.solved) {
       persistCwProgress();
@@ -1414,8 +1424,17 @@ function populateCwSelector() {
   sel.innerHTML = opts;
 }
 
-function loadSelectedCrossword() {
+function loadSelectedCrossword(allowRestore = true) {
+  if (cwState && !cwState.solved) persistCwProgress();
   const val = document.getElementById('cw-puzzle-select').value;
+  const storeKey = getCwStorageKey(val);
+  const saved = allowRestore ? appState.inProgress?.cwMap?.[storeKey] : null;
+
+  if (saved && saved.puz && saved.cells) {
+    startCrossword(saved.puz, saved);
+    return;
+  }
+
   if (val === 'mini5-daily') {
     const g = CW_5X5_GRIDS[daySeed() % CW_5X5_GRIDS.length];
     startCrossword({ title: '5×5 Daily Mini', size: 5, grid: g, isMini: true, isDaily: true });
@@ -1620,7 +1639,7 @@ function checkCwVictory() {
     if (cwState.puz.isMini) { s.miniSolved++; if (s.miniBest === null || cwState.seconds < s.miniBest) s.miniBest = cwState.seconds; }
     else { s.fullSolved++; if (s.fullBest === null || cwState.seconds < s.fullBest) s.fullBest = cwState.seconds; }
     if (!cwState.usedAssist) s.clean++;
-    saveBoardProgress('cw', null);
+    persistCwProgress();
     if (cwState.puz.isDaily) markDailyComplete('cw'); else saveState(true);
     launchConfetti('win');
     showToast(`🎉 Crossword Solved in ${fmtTime(cwState.seconds)}!`);
