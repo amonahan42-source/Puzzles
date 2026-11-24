@@ -2451,6 +2451,7 @@ autoTwoWaySync();
   if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
+  window.addEventListener('beforeunload', (e) => { e.preventDefault(); e.returnValue = ''; });
 </script>
 </body>
 </html>
