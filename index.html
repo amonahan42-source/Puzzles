@@ -665,7 +665,7 @@
         <span class="pill">⏱ <span id="cw-timer">00:00</span></span>
         <button class="btn" onclick="toggleCwPause()" id="cw-pause-btn">⏸ Pause</button>
         <button class="btn" onclick="toggleCwPencil()" id="cw-pencil-btn">✏️ Pencil: OFF</button>
-        <button class="btn" onclick="resetCurrentCrossword()" title="Clear board and restart">↻ Reset</button>
+        <button class="btn" onclick="resetCurrentCrossword()" title="Clear board or deal fresh random puzzle">↻ Reset</button>
         <select id="cw-check-select" class="select-input" onchange="handleCwCheck(this)">
           <option value="">Check / Reveal ▾</option>
           <option value="check-cell">Check Square</option>
@@ -1246,7 +1246,7 @@ function openModal(id) {
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-/* ==================== 1. CROSSWORD (PER-PUZZLE SAVE + TAB) ==================== */
+/* ==================== 1. CROSSWORD (SAFE PER-PUZZLE SAVE + TAB) ==================== */
 const CW_CLUES = {
   ACE:"Hole-in-one or top card",ACT:"Play a part",ADD:"Tally up",AGE:"Maturation",AGO:"In the past",AID:"Helpful help",AIM:"Point at target",AIR:"Atmosphere",ALE:"Pub brew",ALL:"Everything",AND:"Plus",ANT:"Picnic bug",APE:"Gorilla",ARC:"Curved path",ARE:"Exist",ARK:"Noah's boat",ARM:"Limb",ART:"Gallery work",ASH:"Fire residue",ASK:"Inquire",ATE:"Dined",AWE:"Wonder",AXE:"Chopper",
   BAD:"Not good",BAG:"Tote",BAN:"Prohibit",BAR:"Sandbank",BAT:"Slugger's stick",BAY:"Coastal inlet",BED:"Mattress frame",BEE:"Honey maker",BET:"Wager",BIG:"Large",BIN:"Storage box",BIT:"Small piece",BOG:"Marsh",BOW:"Ship front",BOX:"Carton",BOY:"Young lad",BUD:"Sprout",BUG:"Software glitch",BUN:"Burger roll",BUS:"Transit vehicle",BUY:"Purchase",
@@ -1371,7 +1371,7 @@ function getCwStorageKey(selectVal) {
 function persistCwProgress() {
   if (!cwState) return;
   if (!appState.inProgress.cwMap) appState.inProgress.cwMap = {};
-  const selectVal = document.getElementById('cw-puzzle-select').value;
+  const selectVal = cwState.selectVal || document.getElementById('cw-puzzle-select').value;
   const storeKey = getCwStorageKey(selectVal);
   appState.inProgress.cwActive = selectVal;
   appState.inProgress.cwMap[storeKey] = {
@@ -1393,6 +1393,7 @@ function resetCurrentCrossword() {
   const selectVal = document.getElementById('cw-puzzle-select').value;
   const storeKey = getCwStorageKey(selectVal);
   if (appState.inProgress?.cwMap) delete appState.inProgress.cwMap[storeKey];
+  cwState = null;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
   loadSelectedCrossword(false);
 }
@@ -1429,31 +1430,33 @@ function loadSelectedCrossword(allowRestore = true) {
   const val = document.getElementById('cw-puzzle-select').value;
   const storeKey = getCwStorageKey(val);
   const saved = allowRestore ? appState.inProgress?.cwMap?.[storeKey] : null;
+  const expectedSize = val.startsWith('full-') ? 15 : (val === 'mini7-rand' ? 7 : (val.startsWith('mini5') ? 5 : null));
 
-  if (saved && saved.puz && saved.cells) {
-    startCrossword(saved.puz, saved);
+  if (saved && saved.puz && saved.cells && (!expectedSize || saved.puz.size === expectedSize)) {
+    startCrossword(saved.puz, saved, val);
     return;
   }
 
   if (val === 'mini5-daily') {
     const g = CW_5X5_GRIDS[daySeed() % CW_5X5_GRIDS.length];
-    startCrossword({ title: '5×5 Daily Mini', size: 5, grid: g, isMini: true, isDaily: true });
+    startCrossword({ title: '5×5 Daily Mini', size: 5, grid: g, isMini: true, isDaily: true }, null, val);
   } else if (val === 'mini5-rand') {
     const g = CW_5X5_GRIDS[Math.floor(Math.random() * CW_5X5_GRIDS.length)];
-    startCrossword({ title: '5×5 Mini', size: 5, grid: g, isMini: true, isDaily: false });
+    startCrossword({ title: '5×5 Mini', size: 5, grid: g, isMini: true, isDaily: false }, null, val);
   } else if (val === 'mini7-rand') {
     const g = CW_7X7_GRIDS[Math.floor(Math.random() * CW_7X7_GRIDS.length)];
-    startCrossword({ title: '7×7 Mini', size: 7, grid: g, isMini: true, isDaily: false });
+    startCrossword({ title: '7×7 Mini', size: 7, grid: g, isMini: true, isDaily: false }, null, val);
   } else if (val.startsWith('full-')) {
     const idx = Number(val.split('-')[1]);
-    startCrossword({ title: `15×15 Full #${idx+1}`, size: 15, grid: CW_15X15_GRIDS[idx], isMini: false, isDaily: false });
+    startCrossword({ title: `15×15 Full #${idx+1}`, size: 15, grid: CW_15X15_GRIDS[idx], isMini: false, isDaily: false }, null, val);
   } else {
-    startCrossword(importedPuzList[Number(val.split('-')[1])]);
+    startCrossword(importedPuzList[Number(val.split('-')[1])], null, val);
   }
 }
 
-function startCrossword(puz, restored = null) {
+function startCrossword(puz, restored = null, selectVal = null) {
   const N = puz.size;
+  const activeSelect = selectVal || document.getElementById('cw-puzzle-select').value;
   const cells = [];
   let clueNum = 1;
   const numberMap = { across: {}, down: {} };
@@ -1490,6 +1493,7 @@ function startCrossword(puz, restored = null) {
   outer: for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!cells[r][c].isBlock) { startR = r; startC = c; break outer; }
 
   cwState = {
+    selectVal: activeSelect,
     puz, N,
     cells: restored ? restored.cells : cells,
     numberMap,
@@ -1670,8 +1674,9 @@ function handlePuzUpload(ev) {
       }
       const puzObj = { title, size: w, grid, clues, isMini: w <= 7, isDaily: false };
       importedPuzList.push(puzObj); populateCwSelector();
-      document.getElementById('cw-puzzle-select').value = `puz-${importedPuzList.length - 1}`;
-      startCrossword(puzObj); showToast(`📂 Loaded "${title}"`);
+      const puzVal = `puz-${importedPuzList.length - 1}`;
+      document.getElementById('cw-puzzle-select').value = puzVal;
+      startCrossword(puzObj, null, puzVal); showToast(`📂 Loaded "${title}"`);
     } catch { showToast('⚠️ Could not parse .puz file'); }
   };
   reader.readAsArrayBuffer(file);
