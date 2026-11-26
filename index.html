@@ -1947,10 +1947,8 @@ function initWordSearch() {
 function startWordSearch(idx) {
   const N = 12;
   let words;
-  if if (idx === 'random') {
-    words = pickNoRepeat('ws', WS_PACKS.flatMap(p => p.words), 10); {
-    words = [...WS_PACKS.flatMap(p => p.words)].sort(() => Math.random() - 0.5).slice(0, 10);
-  } else if (idx === '0') {
+ if (idx === 'random') {
+    words = pickNoRepeat('ws', WS_PACKS.flatMap(p => p.words), 10);  } else if (idx === '0') {
     const all = WS_PACKS.flatMap(p => p.words);
     let s = daySeed(); const rnd = () => { s = (s*9301+49297)%233280; return s/233280; };
     words = [...all].sort(() => rnd() - 0.5).slice(0, 10);
@@ -2089,7 +2087,6 @@ function renderWordSearch() {
 
 /* ==================== 4. SOLITAIRE ASSOCIATIONS (EASY/MED/HARD/RANDOM + DRAG-AND-DROP) ==================== */
 const SOL_CAT_POOL = [
-  const SOL_CAT_POOL = [
   { name: 'GOLF', words: ['DRIVER', 'BUNKER', 'BIRDIE', 'CADDIE'], tier: 'easy' },
   { name: 'COFFEE', words: ['ESPRESSO', 'LATTE', 'MOCHA', 'ROAST'], tier: 'easy' },
   { name: 'TREES', words: ['MAPLE', 'CEDAR', 'BIRCH', 'WILLOW'], tier: 'easy' },
@@ -2505,7 +2502,6 @@ function renderSolitaire() {
 
 /* ==================== 5. CONNECTIONS (EXPANDED + CONFETTI) ==================== */
 const CONN_PUZZLES = [
- const CONN_PUZZLES = [
   { title: 'Daily Connections', groups: [
     { category: 'GOLF TERMS', words: ['FAIRWAY', 'DIVOT', 'MULLIGAN', 'HANDICAP'] },
     { category: 'COASTAL COLORS', words: ['AQUA', 'CORAL', 'SAND', 'FOAM'] },
