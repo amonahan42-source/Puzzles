@@ -997,6 +997,7 @@ const defaultState = {
   sync: { url: '', key: '', auto: true, lastSync: '' },
   dailyDone: {},
   grandSlams: 0,
+  usedPools: {},
   inProgress: { cwActive: 'mini5-daily', cwMap: {}, ws: null, sol: null, conn: null },
   stats: {
     sol: { played: 0, won: 0, clean: 0, bestMoves: null },
@@ -1910,7 +1911,6 @@ function renderWordle() {
 
 /* ==================== 3. CLASSIC WORD SEARCH (12x12) ==================== */
 const WS_PACKS = [
-const WS_PACKS = [
   { name: 'Daily Mix', words: ['FAIRWAY','BIRDIE','COASTAL','MARINA','EXPRESS','CABOOSE','MAPLE','CEDAR','BOURBON','PUZZLE'] },
   { name: 'Golf & Links', words: ['DRIVER','BUNKER','EAGLE','CADDIE','PUTTER','WEDGE','GREENS','IRONS','BOGEY','LINKS'] },
   { name: 'Beach & Ocean', words: ['DOLPHIN','PELICAN','SANDBAR','SURFING','SEAGULL','SHELLS','SUNSET','MARLIN','BREEZE','HARBOR'] },
@@ -1947,8 +1947,9 @@ function initWordSearch() {
 function startWordSearch(idx) {
   const N = 12;
   let words;
- if (idx === 'random') {
-    words = pickNoRepeat('ws', WS_PACKS.flatMap(p => p.words), 10);  } else if (idx === '0') {
+  if (idx === 'random') {
+    words = pickNoRepeat('ws', WS_PACKS.flatMap(p => p.words), 10);
+  } else if (idx === '0') {
     const all = WS_PACKS.flatMap(p => p.words);
     let s = daySeed(); const rnd = () => { s = (s*9301+49297)%233280; return s/233280; };
     words = [...all].sort(() => rnd() - 0.5).slice(0, 10);
