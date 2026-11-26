@@ -1721,6 +1721,34 @@ const VALID_5_SET = new Set([
   ...Object.keys(CW_CLUES).filter(w => w.length === 5),
   ...EXTRA_5.split(/\s+/)
 ]);
+  const WORDLE_ANSWER_POOL = [...new Set([
+  ...WORDLE_TARGETS,
+  ...Object.keys(CW_CLUES).filter(w => w.length === 5)
+])];
+
+function pickNoRepeat(bucket, items, count, keyFn = x => x) {
+  if (!appState.usedPools) appState.usedPools = {};
+  let used = new Set(appState.usedPools[bucket] || []);
+  let fresh = items.filter(item => !used.has(keyFn(item)));
+  const picked = [];
+  const take = (arr, n) => {
+    const copy = [...arr].sort(() => Math.random() - 0.5);
+    return copy.slice(0, n);
+  };
+  if (fresh.length >= count) {
+    picked.push(...take(fresh, count));
+  } else {
+    picked.push(...take(fresh, fresh.length));
+    used = new Set(picked.map(keyFn));
+    const refill = items.filter(item => !used.has(keyFn(item)));
+    picked.push(...take(refill, count - picked.length));
+  }
+  picked.forEach(item => used.add(keyFn(item)));
+  if (used.size >= items.length) used.clear();
+  appState.usedPools[bucket] = [...used];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  return picked;
+}
 
 let wState = { mode: 'daily', hardMode: false, target: '', guesses: [], current: '', over: false, shakeRow: -1, winRow: -1 };
 
@@ -1744,7 +1772,7 @@ function setWordleMode(mode) {
     if (wd.lastDate === todayStr() && wd.board) {
       wState.target = wd.board.target; wState.guesses = wd.board.guesses; wState.current = ''; wState.over = wd.board.over;
     } else {
-      wState.target = WORDLE_TARGETS[daySeed() % WORDLE_TARGETS.length];
+      wState.target = WORDLE_ANSWER_POOL[daySeed() % WORDLE_ANSWER_POOL.length];
       wState.guesses = []; wState.current = ''; wState.over = false;
     }
   } else { newUnlimitedWordle(); return; }
@@ -1752,7 +1780,7 @@ function setWordleMode(mode) {
 }
 
 function newUnlimitedWordle() {
-  wState.target = WORDLE_TARGETS[Math.floor(Math.random() * WORDLE_TARGETS.length)];
+  wState.target = pickNoRepeat('wordle', WORDLE_ANSWER_POOL, 1)[0];
   wState.guesses = []; wState.current = ''; wState.over = false; wState.winRow = -1;
   renderWordle();
 }
@@ -1862,11 +1890,23 @@ function renderWordle() {
 
 /* ==================== 3. CLASSIC WORD SEARCH (12x12) ==================== */
 const WS_PACKS = [
+const WS_PACKS = [
   { name: 'Daily Mix', words: ['FAIRWAY','BIRDIE','COASTAL','MARINA','EXPRESS','CABOOSE','MAPLE','CEDAR','BOURBON','PUZZLE'] },
   { name: 'Golf & Links', words: ['DRIVER','BUNKER','EAGLE','CADDIE','PUTTER','WEDGE','GREENS','IRONS','BOGEY','LINKS'] },
   { name: 'Beach & Ocean', words: ['DOLPHIN','PELICAN','SANDBAR','SURFING','SEAGULL','SHELLS','SUNSET','MARLIN','BREEZE','HARBOR'] },
   { name: 'Trains & Travel', words: ['ENGINE','SLEEPER','TRESTLE','STATION','TICKET','WINDOW','TUNNEL','BRIDGE','COACH','TRACKS'] },
-  { name: 'Kitchen & Grill', words: ['SKILLET','SPATULA','BRISKET','ROASTED','CINNAMON','GARLIC','PEPPER','SIMMER','SAUCE','PLATTER'] }
+  { name: 'Kitchen & Grill', words: ['SKILLET','SPATULA','BRISKET','ROASTED','CINNAMON','GARLIC','PEPPER','SIMMER','SAUCE','PLATTER'] },
+  { name: 'National Parks', words: ['CANYON','GLACIER','REDWOOD','GEYSER','SUMMIT','TRAILHEAD','CASCADE','MEADOW','VALLEY','PINECONE'] },
+  { name: 'Space & Sky', words: ['GALAXY','NEBULA','ECLIPSE','METEOR','JUPITER','SATURN','COMETS','GRAVITY','ORBITAL','SOLSTICE'] },
+  { name: 'Music & Sound', words: ['GUITAR','TRUMPET','MELODY','RHYTHM','CHORUS','HARMONY','ACOUSTIC','CONCERT','VIOLIN','BALLAD'] },
+  { name: 'Garden & Patio', words: ['PERGOLA','TRELLIS','COMPOST','LANTERN','BLOOMING','LAVENDER','PRUNING','HAMMOCK','PAVERS','FOUNTAIN'] },
+  { name: 'Coffee & Cafe', words: ['ESPRESSO','ROASTER','BARISTA','CARAMEL','CORTADO','FRENCH','GRINDER','ARABICA','FROTHER','PASTRY'] },
+  { name: 'Sports Arena', words: ['STADIUM','REFEREE','OVERTIME','CAPTAIN','PENALTY','PLAYOFF','TROPHY','WHISTLE','BLEACHER','INNING'] },
+  { name: 'Weather Watch', words: ['MONSOON','CYCLONE','DRIZZLE','THUNDER','RAINBOW','BAROMETER','FORECAST','BLIZZARD','HUMIDITY','SQUALL'] },
+  { name: 'Sailing & Boats', words: ['ANCHOR','COMPASS','STARBOARD','HALYARD','SCHOONER','CATAMARAN','CAPSIZE','RUDDER','DINGHY','MOORING'] },
+  { name: 'Classic Games', words: ['CHECKERS','DOMINOES','CRIBBAGE','MAHJONG','BACKGAMMON','SOLITAIRE','SCRABBLE','EUCHRE','PINOCHLE','YAHTZEE'] },
+  { name: 'World Capitals', words: ['LISBON','VIENNA','OTTAWA','DUBLIN','ATHENS','PRAGUE','MADRID','TOKYO','NAIROBI','REYKJAVIK'] },
+  { name: 'Autumn & Harvest', words: ['PUMPKIN','ORCHARD','SCARECROW','FLANNEL','BONFIRE','CHESTNUT','HARVEST','HAYRIDE','EQUINOX','ACORNS'] }
 ];
 
 let wsState = null;
@@ -1887,7 +1927,8 @@ function initWordSearch() {
 function startWordSearch(idx) {
   const N = 12;
   let words;
-  if (idx === 'random') {
+  if if (idx === 'random') {
+    words = pickNoRepeat('ws', WS_PACKS.flatMap(p => p.words), 10); {
     words = [...WS_PACKS.flatMap(p => p.words)].sort(() => Math.random() - 0.5).slice(0, 10);
   } else if (idx === '0') {
     const all = WS_PACKS.flatMap(p => p.words);
@@ -2028,6 +2069,7 @@ function renderWordSearch() {
 
 /* ==================== 4. SOLITAIRE ASSOCIATIONS (EASY/MED/HARD/RANDOM + DRAG-AND-DROP) ==================== */
 const SOL_CAT_POOL = [
+  const SOL_CAT_POOL = [
   { name: 'GOLF', words: ['DRIVER', 'BUNKER', 'BIRDIE', 'CADDIE'], tier: 'easy' },
   { name: 'COFFEE', words: ['ESPRESSO', 'LATTE', 'MOCHA', 'ROAST'], tier: 'easy' },
   { name: 'TREES', words: ['MAPLE', 'CEDAR', 'BIRCH', 'WILLOW'], tier: 'easy' },
@@ -2038,12 +2080,34 @@ const SOL_CAT_POOL = [
   { name: 'FABRICS', words: ['LINEN', 'DENIM', 'VELVET', 'FLANNEL'], tier: 'easy' },
   { name: 'BEACH GEAR', words: ['UMBRELLA', 'COOLER', 'SANDALS', 'TOWEL'], tier: 'easy' },
   { name: 'SEA LIFE', words: ['DOLPHIN', 'MARLIN', 'STINGRAY', 'PELICAN'], tier: 'easy' },
+  { name: 'BERRIES', words: ['BLUEBERRY', 'RASPBERRY', 'CURRANT', 'MULBERRY'], tier: 'easy' },
+  { name: 'SPICES', words: ['PAPRIKA', 'TURMERIC', 'CARDAMOM', 'CUMIN'], tier: 'easy' },
+  { name: 'GEMSTONES', words: ['EMERALD', 'SAPPHIRE', 'TOPAZ', 'GARNET'], tier: 'easy' },
+  { name: 'FLOWERS', words: ['DAHLIA', 'HYDRANGEA', 'PEONY', 'ZINNIA'], tier: 'easy' },
+  { name: 'PASTA SHAPES', words: ['RIGATONI', 'FARFALLE', 'PENNE', 'ORZO'], tier: 'easy' },
+  { name: 'CAMPING', words: ['LANTERN', 'CANTEEN', 'HAMMOCK', 'COMPASS'], tier: 'easy' },
+  { name: 'BREAKFAST', words: ['OMELET', 'WAFFLE', 'GRANOLA', 'BRIOCHE'], tier: 'easy' },
+  { name: 'BIRDS OF PREY', words: ['FALCON', 'OSPREY', 'KESTREL', 'HARRIER'], tier: 'easy' },
+  { name: 'NUTS', words: ['PISTACHIO', 'HAZELNUT', 'PECAN', 'CASHEW'], tier: 'easy' },
+  { name: 'DESSERTS', words: ['TIRAMISU', 'CANNOLI', 'COBBLER', 'SORBET'], tier: 'easy' },
   { name: 'TRAINS', words: ['CABOOSE', 'CONDUCTOR', 'SLEEPER', 'TRESTLE'], tier: 'medium' },
   { name: 'CARD GAMES', words: ['BRIDGE', 'EUCHRE', 'HEARTS', 'SPADES'], tier: 'medium' },
   { name: 'BOATS', words: ['SCHOONER', 'CATAMARAN', 'DINGHY', 'PONTOON'], tier: 'medium' },
   { name: 'DOG BREEDS', words: ['BEAGLE', 'BOXER', 'POINTER', 'SETTER'], tier: 'medium' },
   { name: 'CHEESES', words: ['CHEDDAR', 'GRUYERE', 'BRIE', 'GOUDA'], tier: 'medium' },
   { name: 'TOOLS', words: ['WRENCH', 'CHISEL', 'LEVEL', 'PLIERS'], tier: 'medium' },
+  { name: 'DANCES', words: ['FOXTROT', 'BOLERO', 'SAMBA', 'WALTZ'], tier: 'medium' },
+  { name: 'WINES', words: ['MERLOT', 'RIESLING', 'MALBEC', 'SYRAH'], tier: 'medium' },
+  { name: 'BREADS', words: ['FOCACCIA', 'CIABATTA', 'BAGUETTE', 'CHALLAH'], tier: 'medium' },
+  { name: 'CURRENCIES', words: ['KRONE', 'FRANC', 'DIRHAM', 'RUPEE'], tier: 'medium' },
+  { name: 'METALS', words: ['COPPER', 'COBALT', 'PEWTER', 'BRONZE'], tier: 'medium' },
+  { name: 'WOODWINDS', words: ['OBOE', 'BASSOON', 'CLARINET', 'PICCOLO'], tier: 'medium' },
+  { name: 'SHADES OF BLUE', words: ['CERULEAN', 'INDIGO', 'COBALT', 'AZURITE'], tier: 'medium' },
+  { name: 'MOUNTAIN RANGES', words: ['ANDES', 'ROCKIES', 'PYRENEES', 'ALPS'], tier: 'medium' },
+  { name: 'CAR BODY STYLES', words: ['SEDAN', 'COUPE', 'ROADSTER', 'WAGON'], tier: 'medium' },
+  { name: 'ROOFING & HOUSE', words: ['GABLE', 'DORMER', 'SHINGLE', 'EAVES'], tier: 'medium' },
+  { name: 'TYPES OF TEA', words: ['OOLONG', 'MATCHA', 'ASSAM', 'ROOIBOS'], tier: 'medium' },
+  { name: 'CHESS TERMS', words: ['GAMBIT', 'CASTLE', 'ENDGAME', 'STALEMATE'], tier: 'medium' },
   { name: 'HAVE KEYS', words: ['PIANO', 'LOCKSMITH', 'FLORIDA', 'MAP'], tier: 'hard' },
   { name: 'CAN PITCH', words: ['BASEBALL', 'TENT', 'ROOF', 'SALESMAN'], tier: 'hard' },
   { name: 'HAVE RINGS', words: ['CIRCUS', 'TREE TRUNK', 'BOXING', 'SATURN'], tier: 'hard' },
@@ -2051,7 +2115,17 @@ const SOL_CAT_POOL = [
   { name: 'CAN RUN', words: ['FAUCET', 'CANDIDATE', 'MASCARA', 'ENGINE'], tier: 'hard' },
   { name: 'HAVE TEETH', words: ['COMB', 'ZIPPER', 'SAW', 'GEAR'], tier: 'hard' },
   { name: 'ARE CAST', words: ['SHADOW', 'BALLOT', 'IRON', 'SPELL'], tier: 'hard' },
-  { name: 'BOARD PIECES', words: ['THIMBLE', 'ROOK', 'CHECKER', 'MEEPLE'], tier: 'hard' }
+  { name: 'BOARD PIECES', words: ['THIMBLE', 'ROOK', 'CHECKER', 'MEEPLE'], tier: 'hard' },
+  { name: 'HAVE HANDS', words: ['CLOCK', 'POKER', 'FARM', 'DECK'], tier: 'hard' },
+  { name: 'HAVE NECKS', words: ['BOTTLE', 'GUITAR', 'SHIRT', 'WOODS'], tier: 'hard' },
+  { name: 'CAN BE DRAWN', words: ['CURTAIN', 'BATH', 'CARD', 'BRIDGE'], tier: 'hard' },
+  { name: 'HAVE BANKS', words: ['RIVER', 'FOG', 'SNOW', 'MEMORY'], tier: 'hard' },
+  { name: 'HAVE CAPS', words: ['BOTTLE', 'KNEE', 'MUSHROOM', 'ICE'], tier: 'hard' },
+  { name: 'CAN BE STRUCK', words: ['MATCH', 'GOLD', 'CHORD', 'BARGAIN'], tier: 'hard' },
+  { name: 'HAVE EYES', words: ['NEEDLE', 'POTATO', 'STORM', 'TIGER'], tier: 'hard' },
+  { name: 'HAVE BRIDGES', words: ['NOSE', 'VIOLIN', 'SHIP', 'DENTAL'], tier: 'hard' },
+  { name: 'CAN BE ROLLED', words: ['DICE', 'DOUGH', 'THUNDER', 'SLEEVE'], tier: 'hard' },
+  { name: 'HAVE HEADS', words: ['LETTUCE', 'HAMMER', 'SHOWER', 'COIN'], tier: 'hard' }
 ];
 
 let solState = null;
@@ -2098,14 +2172,13 @@ function startSolitaire(mode) {
     hard: { count: 8, slots: 5, moves: 34, label: 'Hard' }
   }[actualMode] || { count: 5, slots: 4, moves: 28, label: 'Daily Mix' };
 
-  let pool = [...SOL_CAT_POOL];
+  let chosen;
   if (mode === 'daily') {
     let s = daySeed(); const rnd = () => { s = (s*9301+49297)%233280; return s/233280; };
-    pool.sort(() => rnd() - 0.5);
+    chosen = [...SOL_CAT_POOL].sort(() => rnd() - 0.5).slice(0, cfg.count);
   } else {
-    pool.sort(() => Math.random() - 0.5);
+    chosen = pickNoRepeat('sol', SOL_CAT_POOL, cfg.count, c => c.name);
   }
-  const chosen = pool.slice(0, cfg.count);
   const cards = [];
   chosen.forEach((cat, cIdx) => {
     cards.push({ id: `cat-${cIdx}`, text: `★ ${cat.name}`, cat: cat.name, isCat: true, faceUp: true });
@@ -2413,6 +2486,7 @@ function renderSolitaire() {
 
 /* ==================== 5. CONNECTIONS (EXPANDED + CONFETTI) ==================== */
 const CONN_PUZZLES = [
+ const CONN_PUZZLES = [
   { title: 'Daily Connections', groups: [
     { category: 'GOLF TERMS', words: ['FAIRWAY', 'DIVOT', 'MULLIGAN', 'HANDICAP'] },
     { category: 'COASTAL COLORS', words: ['AQUA', 'CORAL', 'SAND', 'FOAM'] },
@@ -2448,6 +2522,66 @@ const CONN_PUZZLES = [
     { category: 'SEABIRDS', words: ['TERN', 'GANNET', 'PUFFIN', 'CORMORANT'] },
     { category: 'THINGS WITH LEAVES', words: ['TABLE', 'BOOK', 'AUTUMN', 'TEA'] },
     { category: 'SILENT FIRST LETTER', words: ['KNIGHT', 'WRENCH', 'GNOME', 'PSALM'] }
+  ]},
+  { title: 'Puzzle #7: Kitchen Counter', groups: [
+    { category: 'FRESH HERBS', words: ['BASIL', 'THYME', 'TARRAGON', 'DILL'] },
+    { category: 'BAKING PANS', words: ['LOAF', 'BUNDT', 'SPRINGFORM', 'MUFFIN'] },
+    { category: 'KNIFE CUTS', words: ['JULIENNE', 'MINCE', 'DICE', 'CHIFFONADE'] },
+    { category: 'WORDS BEFORE "CAKE"', words: ['PAN', 'SHORT', 'CHEESE', 'CUP'] }
+  ]},
+  { title: 'Puzzle #8: Harbor Days', groups: [
+    { category: 'PARTS OF A BOAT', words: ['STERN', 'KEEL', 'RUDDER', 'BOW'] },
+    { category: 'SHELLFISH', words: ['CLAM', 'MUSSEL', 'OYSTER', 'SCALLOP'] },
+    { category: 'KNOTS', words: ['BOWLINE', 'CLOVE', 'REEF', 'HITCH'] },
+    { category: 'WORDS AFTER "SEA"', words: ['SHELL', 'HORSE', 'WEED', 'GLASS'] }
+  ]},
+  { title: 'Puzzle #9: Road Trip', groups: [
+    { category: 'CAR PARTS', words: ['AXLE', 'CLUTCH', 'PISTON', 'MUFFLER'] },
+    { category: 'HIGHWAY SIGNS', words: ['YIELD', 'MERGE', 'DETOUR', 'EXIT'] },
+    { category: 'US STATES (4 LETTERS)', words: ['OHIO', 'IOWA', 'UTAH', 'MAINE'] },
+    { category: 'WORDS BEFORE "WAY"', words: ['FREE', 'SUB', 'RUN', 'FAIR'] }
+  ]},
+  { title: 'Puzzle #10: Game Night', groups: [
+    { category: 'POKER HANDS', words: ['FLUSH', 'STRAIGHT', 'PAIR', 'FULL HOUSE'] },
+    { category: 'DICE GAMES', words: ['CRAPS', 'FARKLE', 'LIAR', 'YAHTZEE'] },
+    { category: 'CHESS PIECES', words: ['BISHOP', 'KNIGHT', 'QUEEN', 'PAWN'] },
+    { category: 'THINGS YOU SHUFFLE', words: ['DECK', 'FEET', 'PLAYLIST', 'PAPERS'] }
+  ]},
+  { title: 'Puzzle #11: Night Sky', groups: [
+    { category: 'CONSTELLATIONS', words: ['ORION', 'LYRA', 'DRACO', 'CYGNUS'] },
+    { category: 'MOON PHASES', words: ['CRESCENT', 'GIBBOUS', 'NEW', 'FULL'] },
+    { category: 'GREEK LETTERS', words: ['ALPHA', 'DELTA', 'SIGMA', 'OMEGA'] },
+    { category: 'WORDS BEFORE "STAR"', words: ['NORTH', 'ROCK', 'SHOOTING', 'CO'] }
+  ]},
+  { title: 'Puzzle #12: Workshop', groups: [
+    { category: 'FASTENERS', words: ['RIVET', 'BOLT', 'WASHER', 'DOWEL'] },
+    { category: 'SAWS', words: ['MITER', 'JIG', 'HACK', 'COPING'] },
+    { category: 'HARDWOODS', words: ['WALNUT', 'CHERRY', 'TEAK', 'ASH'] },
+    { category: 'THINGS WITH HEADS', words: ['HAMMER', 'NAIL', 'LETTUCE', 'DRUM'] }
+  ]},
+  { title: 'Puzzle #13: Music Hall', groups: [
+    { category: 'BRASS INSTRUMENTS', words: ['TUBA', 'CORNET', 'TROMBONE', 'BUGLE'] },
+    { category: 'TEMPO MARKINGS', words: ['ALLEGRO', 'ADAGIO', 'PRESTO', 'LARGO'] },
+    { category: 'MUSIC GENRES', words: ['BLUES', 'SWING', 'SOUL', 'FOLK'] },
+    { category: 'WORDS AFTER "KEY"', words: ['BOARD', 'HOLE', 'STONE', 'NOTE'] }
+  ]},
+  { title: 'Puzzle #14: Around the World', groups: [
+    { category: 'RIVERS', words: ['DANUBE', 'THAMES', 'SEINE', 'RHINE'] },
+    { category: 'ISLAND NATIONS', words: ['ICELAND', 'MALTA', 'CYPRUS', 'FIJI'] },
+    { category: 'SPICY PEPPERS', words: ['POBLANO', 'SERRANO', 'HABANERO', 'CAYENNE'] },
+    { category: 'THINGS THAT HAVE CAPS', words: ['BOTTLE', 'KNEE', 'BASEBALL', 'ICE'] }
+  ]},
+  { title: 'Puzzle #15: Double Meanings', groups: [
+    { category: 'SPRING THINGS', words: ['COIL', 'SEASON', 'FOUNTAIN', 'LEAP'] },
+    { category: 'PITCHED THINGS', words: ['TENT', 'ROOF', 'CURVEBALL', 'IDEA'] },
+    { category: 'DRAWN THINGS', words: ['CURTAIN', 'SKETCH', 'LOTTERY', 'BATH'] },
+    { category: 'WORDS BEFORE "LINE"', words: ['DEAD', 'FINISH', 'PUNCH', 'TIME'] }
+  ]},
+  { title: 'Puzzle #16: Weekend Brunch', groups: [
+    { category: 'EGG STYLES', words: ['POACHED', 'SCRAMBLED', 'SHIRRED', 'CODDLED'] },
+    { category: 'PASTRIES', words: ['SCONE', 'DANISH', 'CROISSANT', 'ECLAIR'] },
+    { category: 'JUICES', words: ['CRANBERRY', 'GUAVA', 'TOMATO', 'POMEGRANATE'] },
+    { category: 'WORDS BEFORE "TOAST"', words: ['FRENCH', 'MELBA', 'MILK', 'TEXAS'] }
   ]}
 ];
 
