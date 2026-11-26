@@ -1346,28 +1346,105 @@ const CW_7X7_GRIDS = [
   ["ROD....","ANEW...","MELON..","..TRY..","..ATLAS","...HOLE","....NET"]
 ];
 
-const CW_15X15_GRIDS = [
-  [
-    "WIT.KEY.FUN.WON","ATONE...UNIFY..","GENE....RICE...",".MERGE...TENSE.","...VALE....CALL","..TENSE...DENSE","PUT.GEL.OUR.GET",
-    "...............",
-    "MOP.BAD.ACE.TOP","AROMA...SHORE..","PALE....HEAR...",".LEDGE...EAGLE.","...ALLY....SAND","..CLOSE...CLEAR","ART.WET.NET.DRY"
-  ],
-  [
-    "ACE.TOP.MOP.BAD","SHORE...AROMA..","HEAR....PALE...",".EAGLE...LEDGE.","...SAND....ALLY","..CLEAR...CLOSE","NET.DRY.ART.WET",
-    "...............",
-    "FUN.WON.WIT.KEY","UNIFY...ATONE..","RICE....GENE...",".TENSE...MERGE.","...CALL....VALE","..DENSE...TENSE","OUR.GET.PUT.GEL"
-  ],
-  [
-    "MOP.BAD.WIT.KEY","AROMA...ATONE..","PALE....GENE...",".LEDGE...MERGE.","...ALLY....VALE","..CLOSE...TENSE","ART.WET.PUT.GEL",
-    "...............",
-    "ACE.TOP.FUN.WON","SHORE...UNIFY..","HEAR....RICE...",".EAGLE...TENSE.","...SAND....CALL","..CLEAR...DENSE","NET.DRY.OUR.GET"
-  ]
-];
+function generateFull15x15Grid(seed = null) {
+  const N = 15;
+  const grid = Array.from({ length: N }, () => Array(N).fill('.'));
+  const allWords = Object.keys(CW_CLUES).filter(w => w.length >= 3 && w.length <= 5);
+  let pool;
+  if (seed !== null) {
+    let s = seed;
+    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    pool = [...allWords].sort(() => rnd() - 0.5);
+  } else {
+    pool = pickNoRepeat('cw15_words', allWords, Math.min(360, allWords.length));
+  }
+
+  const used = new Set();
+  const canPlace = (w, r, c, d) => {
+    const L = w.length;
+    if (d === 'A') {
+      if (c < 0 || c + L > N || r < 0 || r >= N) return -1;
+      if (c > 0 && grid[r][c - 1] !== '.') return -1;
+      if (c + L < N && grid[r][c + L] !== '.') return -1;
+      let inter = 0;
+      for (let i = 0; i < L; i++) {
+        const ch = grid[r][c + i];
+        if (ch !== '.') {
+          if (ch !== w[i]) return -1;
+          inter++;
+        } else {
+          if (r > 0 && grid[r - 1][c + i] !== '.') return -1;
+          if (r + 1 < N && grid[r + 1][c + i] !== '.') return -1;
+        }
+      }
+      return inter;
+    } else {
+      if (r < 0 || r + L > N || c < 0 || c >= N) return -1;
+      if (r > 0 && grid[r - 1][c] !== '.') return -1;
+      if (r + L < N && grid[r + L][c] !== '.') return -1;
+      let inter = 0;
+      for (let i = 0; i < L; i++) {
+        const ch = grid[r + i][c];
+        if (ch !== '.') {
+          if (ch !== w[i]) return -1;
+          inter++;
+        } else {
+          if (c > 0 && grid[r + i][c - 1] !== '.') return -1;
+          if (c + 1 < N && grid[r + i][c + 1] !== '.') return -1;
+        }
+      }
+      return inter;
+    }
+  };
+
+  const place = (w, r, c, d) => {
+    for (let i = 0; i < w.length; i++) {
+      if (d === 'A') grid[r][c + i] = w[i];
+      else grid[r + i][c] = w[i];
+    }
+    used.add(w);
+  };
+
+  const first = pool.find(w => w.length === 5) || pool[0];
+  place(first, 7, 5, 'A');
+
+  for (let pass = 0; pass < 3; pass++) {
+    for (const w of pool) {
+      if (used.has(w)) continue;
+      let best = null, bestScore = -1;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const ch = grid[r][c];
+          if (ch === '.') continue;
+          for (let idx = 0; idx < w.length; idx++) {
+            if (w[idx] !== ch) continue;
+            for (const d of ['A', 'D']) {
+              const nr = d === 'A' ? r : r - idx;
+              const nc = d === 'A' ? c - idx : c;
+              const inter = canPlace(w, nr, nc, d);
+              if (inter >= 1) {
+                const score = inter * 10 + w.length;
+                if (score > bestScore) { bestScore = score; best = { r: nr, c: nc, d }; }
+              }
+            }
+          }
+        }
+      }
+      if (best) {
+        place(w, best.r, best.c, best.d);
+        if (used.size >= 40) break;
+      }
+    }
+    if (used.size >= 40) break;
+  }
+  return grid.map(row => row.join(''));
+}
 
 let cwState = null, cwTimerInterval = null, importedPuzList = [];
 
 function getCwStorageKey(selectVal) {
   if (selectVal === 'mini5-daily') return `mini5-daily-${todayStr()}`;
+  if (selectVal === 'full-daily') return `full-daily-${todayStr()}`;
   return selectVal;
 }
 
@@ -1421,9 +1498,8 @@ function populateCwSelector() {
   let opts = `<option value="mini5-daily">5×5 Mini: Daily Puzzle</option>` +
              `<option value="mini5-rand">5×5 Mini: Random New</option>` +
              `<option value="mini7-rand">7×7 Mini: Random New</option>` +
-             `<option value="full-0">15×15 Full: Classic #1</option>` +
-             `<option value="full-1">15×15 Full: Classic #2</option>` +
-             `<option value="full-2">15×15 Full: Classic #3</option>`;
+             `<option value="full-daily">15×15 Full: Daily Puzzle</option>` +
+             `<option value="full-rand">15×15 Full: Unlimited New</option>`;
   importedPuzList.forEach((p, i) => opts += `<option value="puz-${i}">📁 ${p.title} (${p.size}×${p.size})</option>`);
   sel.innerHTML = opts;
 }
@@ -1449,9 +1525,12 @@ function loadSelectedCrossword(allowRestore = true) {
   } else if (val === 'mini7-rand') {
     const g = CW_7X7_GRIDS[Math.floor(Math.random() * CW_7X7_GRIDS.length)];
     startCrossword({ title: '7×7 Mini', size: 7, grid: g, isMini: true, isDaily: false }, null, val);
-  } else if (val.startsWith('full-')) {
-    const idx = Number(val.split('-')[1]);
-    startCrossword({ title: `15×15 Full #${idx+1}`, size: 15, grid: CW_15X15_GRIDS[idx], isMini: false, isDaily: false }, null, val);
+  } else if (val === 'full-daily') {
+    const g = generateFull15x15Grid(daySeed() + 777);
+    startCrossword({ title: '15×15 Daily Full', size: 15, grid: g, isMini: false, isDaily: true }, null, val);
+  } else if (val === 'full-rand') {
+    const g = generateFull15x15Grid(null);
+    startCrossword({ title: '15×15 Unlimited Full', size: 15, grid: g, isMini: false, isDaily: false }, null, val);
   } else {
     startCrossword(importedPuzList[Number(val.split('-')[1])], null, val);
   }
