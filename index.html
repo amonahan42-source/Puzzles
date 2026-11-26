@@ -1320,27 +1320,29 @@ const CW_CLUES = {
   WAGER:"Bet",WAGON:"Car",WAIST:"Belt line",WALTZ:"Dance",WASTE:"Draw pile",WATCH:"Timepiece",WATER:"Ocean H2O",WAVES:"Surf",WEDGE:"Sand club",WHALE:"Giant",WHEAT:"Grain",WHEEL:"Circle",WHERE:"Question",WHISK:"Beater",WHITE:"Tee color",WHOLE:"Complete",WIDTH:"Columns",WINDY:"Breezy",WOMAN:"Lady",WORLD:"Globe",WORRY:"Fret",WORTH:"Value",WRITE:"Pen",WRONG:"Incorrect",
   YACHT:"Sailboat",YEAST:"Riser",YIELD:"Sign",YOUNG:"Youthful",YOUTH:"Kids",ZEBRA:"Equine",ZESTY:"Tangy"
 };
-
-const CW_5X5_GRIDS = [
-  ["BEACH","EXTRA","ATLAS","CRAFT","HASTE"],
-  ["BLEND","LINER","ENTRY","NERVE","DRYER"],
-  ["RADAR","ALONE","DOCKS","ANKLE","RESET"],
-  ["LARGE","ACORN","ROBOT","GROVE","ENTER"],
-  [".PAST","PRIOR","AISLE","SOLVE","TREE."],
-  ["CRANE","ROAST","EAGLE","ASSET","METER"],
-  ["SHARE","HAVEN","AVERT","RERUN","TREND"],
-  ["PLANT","LABOR","ABODE","NOISE","TREES"],
-  ["SMART","MEDIA","ADMIT","RIOTS","TASTE"],
-  ["TRAIN","RADIO","AISLE","ISSUE","NOISE"],
-  ["SOLAR","OPERA","LEMON","AROMA","ROAST"],
-  ["GRACE","RAVEN","AVOID","CEASE","ENDED"]
+  
+ const CW_5X5_GRIDS = [
+  ["..USE",".ONCE","TRIAL","ICON.","PAN.."],
+  ["..HUG",".TONE","FRUIT","EAST.","EYE.."],
+  ["..CUB",".CONE","FLUID","AUNT.","NET.."],
+  ["..BED",".COME","PLAIN","RUST.","YET.."],
+  ["..SEW",".STAR","WORRY","ORAL.","NEW.."],
+  ["..HOG",".HAVE","NOVEL","OPEN.","DEN.."],
+  ["..HIT",".MESH","LADLE","EDGE.","TEE.."],
+  ["..YOU",".PEAS","SLATE","PASS.","ANT.."],
+  ["..SLY",".ALOE","TREAT","REED.","YAP.."],
+  ["..GEM",".AIDE","TRAIN","WENT.","OAT.."],
+  ["..JOY",".SORE","ATLAS","CALL.","TRY.."],
+  ["..PIG",".PINE","ELECT","MUCH.","USE.."]
 ];
 
 const CW_7X7_GRIDS = [
-  ["WIT.KEY","ATONE..","GENE...",".MERGE.","...VALE","..TENSE","PUT.GEL"],
-  ["FUN.WON","UNIFY..","RICE...",".TENSE.","...CALL","..DENSE","OUR.GET"],
-  ["MOP.BAD","AROMA..","PALE...",".LEDGE.","...ALLY","..CLOSE","ART.WET"],
-  ["ACE.TOP","SHORE..","HEAR...",".EAGLE.","...SAND","..CLEAR","NET.DRY"]
+  ["COG....","OARS...","DRAMA..","..PAR..","..ERROR","...TONE","....WED"],
+  ["ARC....","SALE...","KNEAD..","..AGE..","..RECAP","...ROLE","....YET"],
+  ["ACT....","GAIN...","ERROR..","..EVE..","..DECOY","...LANE","....PEA"],
+  ["RAN....","ICON...","METER..","..EVE..","..DECOY","...RARE","....PET"],
+  ["DAB....","AWAY...","MEDIA..","..GEL..","..ELBOW","...DUNE","....MET"],
+  ["ROD....","ANEW...","MELON..","..TRY..","..ATLAS","...HOLE","....NET"]
 ];
 
 const CW_15X15_GRIDS = [
@@ -1805,12 +1807,30 @@ function triggerWordleShake(msg) {
   setTimeout(() => { wState.shakeRow = -1; }, 400);
 }
 
-function handleWordleKey(key) {
-  if (wState.over) return;
+async function isReal5LetterWord(word) {
+  if (VALID_5_SET.has(word)) return true;
+  if (!navigator.onLine) return /[AEIOUY]/.test(word);
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`);
+    if (res.ok) {
+      VALID_5_SET.add(word);
+      return true;
+    }
+    return false;
+  } catch {
+    return /[AEIOUY]/.test(word);
+  }
+}
+
+async function handleWordleKey(key) {
+  if (wState.over || wState.checking) return;
   if (key === 'BACKSPACE' || key === '⌫') { wState.current = wState.current.slice(0, -1); renderWordle(); return; }
   if (key === 'ENTER') {
     if (wState.current.length < 5) { triggerWordleShake('Not enough letters'); return; }
-    if (!VALID_5_SET.has(wState.current)) { triggerWordleShake('Not in word list'); return; }
+    wState.checking = true;
+    const ok = await isReal5LetterWord(wState.current);
+    wState.checking = false;
+    if (!ok) { triggerWordleShake('Not in word list'); return; }
     if (wState.hardMode && wState.guesses.length > 0) {
       const prev = wState.guesses[wState.guesses.length - 1], ps = scoreGuess(prev, wState.target);
       for (let i = 0; i < 5; i++) {
@@ -2166,12 +2186,11 @@ function startSolitaire(mode) {
     actualMode = ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
   }
   const cfg = {
-    daily: { count: 5, slots: 4, moves: 28, label: 'Daily Mix' },
-    easy: { count: 4, slots: 3, moves: 28, label: 'Easy' },
-    medium: { count: 6, slots: 4, moves: 30, label: 'Medium' },
-    hard: { count: 8, slots: 5, moves: 34, label: 'Hard' }
-  }[actualMode] || { count: 5, slots: 4, moves: 28, label: 'Daily Mix' };
-
+    daily: { count: 5, slots: 4, moves: 55, label: 'Daily Mix' },
+    easy: { count: 4, slots: 3, moves: 45, label: 'Easy' },
+    medium: { count: 6, slots: 4, moves: 55, label: 'Medium' },
+    hard: { count: 8, slots: 5, moves: 65, label: 'Hard' }
+  }[actualMode] || { count: 5, slots: 4, moves: 55, label: 'Daily Mix' };
   let chosen;
   if (mode === 'daily') {
     let s = daySeed(); const rnd = () => { s = (s*9301+49297)%233280; return s/233280; };
